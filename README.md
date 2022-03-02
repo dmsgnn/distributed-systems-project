@@ -4,6 +4,7 @@
 - 2 jar: **Client** e **Server**
 - Librerie Socket: `java.net.*`
 - Interfaccia client: 1) `write <key> <val>` e 2) `read <key>`
+- Il client deve poter scegliere il server da contattare
 - No persistenza
 
 ## Classi
