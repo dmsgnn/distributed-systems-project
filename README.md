@@ -4,7 +4,7 @@
 - 2 jar: **Client** e **Server**
 - Librerie Socket: `java.net.*`
 - Interfaccia client: 1) `write <key> <val>` e 2) `read <key>`
-- Il client deve poter scegliere il server da contattare
+- Il client deve poter scegliere il it.polimi.ds.client.server da contattare
 - No persistenza
 
 ## Classi
@@ -14,7 +14,7 @@
 
 ## Todo-list
 ### Giovanni
-- Iniziare a lavorare sul server
+- Iniziare a lavorare sul it.polimi.ds.client.server
 
 ### Davide
 - Installazione framework

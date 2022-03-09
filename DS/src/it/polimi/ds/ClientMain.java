@@ -1,35 +1,45 @@
-package it.polimi.ds.client;
+package it.polimi.ds;
 
-import it.polimi.ds.client.middleware.SocketWrapper;
+import it.polimi.ds.messages.ReadRequest;
+import it.polimi.ds.messages.WriteRequest;
+import it.polimi.ds.middleware.SocketWrapper;
 
 import java.io.File;
-import java.io.IOException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
-import it.polimi.ds.client.model.Server;
+import it.polimi.ds.model.Server;
+import it.polimi.ds.model.Tuple;
 import org.w3c.dom.*;
-import org.xml.sax.SAXException;
 
 import javax.xml.parsers.*;
 
-public class Main {
+public class ClientMain {
 
-    static String FILENAME = "src/servers.xml";
+    private static final String FILENAME = "DS/src/servers.xml";
 
     public static void main(String[] args) {
         List<SocketWrapper> connections = new ArrayList<>();
         List<Server> servers = getServers();
         Scanner sc = new Scanner (System.in);
-        do {
+        // TODO: this loop apparently doesn't work
+        //do {
             printWelcome(servers);
             int choice = sc.nextInt() - 1;
             SocketWrapper s = new SocketWrapper(servers.get(choice));
             if (s.isConnected()) {
                 connections.add(s);
             }
-        } while (connections.size() != 1);
+            // some send to test the exchange of requests and replies
+        Timestamp instant;
+        s.send(new ReadRequest((25), instant= Timestamp.from(Instant.now())));
+            s.send(new WriteRequest(new Tuple(10, "testValue"), instant= Timestamp.from(Instant.now())));
+        //} while (connections.size() != 1);
     }
 
     private static void printWelcome(List<Server> servers) {

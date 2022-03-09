@@ -1,4 +1,4 @@
-package it.polimi.ds.client.model;
+package it.polimi.ds.model;
 
 public class Tuple implements java.io.Serializable{
     private Integer key;

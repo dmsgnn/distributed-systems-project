@@ -1,4 +1,4 @@
-package it.polimi.ds.client.model;
+package it.polimi.ds.model;
 
 import java.io.Serializable;
 

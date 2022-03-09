@@ -2,6 +2,6 @@
 <servers>
     <server>
         <host>127.0.0.1</host>
-        <port>1234</port>
+        <port>4000</port>
     </server>
 </servers>
