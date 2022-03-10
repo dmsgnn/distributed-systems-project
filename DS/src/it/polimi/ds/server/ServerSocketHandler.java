@@ -53,12 +53,12 @@ public class ServerSocketHandler implements Runnable{
                 ClientRequest request  = (ClientRequest) in.readObject();
                 if (request instanceof ReadRequest) {
                     System.out.println("I received a read request with key " + ((ReadRequest) request).getKey() + " at time " + ((ReadRequest) request).getTimestamp());
-                    sendReply(new ServerReply("Hey, I received your Read request!"));
+                    sendReply(new ServerReply("["+this.socket.getInetAddress().getHostAddress()+ "] Hey, I received your Read request!"));
                 }
                 else if (request instanceof WriteRequest) {
                     System.out.println("I received a Write request with key " + ((WriteRequest) request).getTuple().getKey() +
                             " and value " + ((WriteRequest)request).getTuple().getValue()+ " at time " + ((WriteRequest) request).getTimestamp());
-                    sendReply(new ServerReply("Hey, I received your Write request!"));
+                    sendReply(new ServerReply("["+this.socket.getInetAddress().getHostAddress()+ "] Hey, I received your Write request!"));
                 }
                 else {
                     System.out.println("An unexpected type of request has been received and it has been ignored");
