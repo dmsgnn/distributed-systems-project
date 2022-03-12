@@ -45,23 +45,27 @@ public class ServerSocketHandler implements Runnable{
     }
 
     /**
-     * The thread catches the events coming from the client to communicate to the it.polimi.ds.client.server.
+     * The thread catches the events coming from the client to communicate to the server.
      */
     public void run() {
+        // TODO: using strings for errors is not good, it would be better doing an error enumeration
         try {
             while(true) {
                 ClientRequest request  = (ClientRequest) in.readObject();
                 if (request instanceof ReadRequest) {
-                    System.out.println("I received a read request with key " + ((ReadRequest) request).getKey() + " at time " + ((ReadRequest) request).getTimestamp());
-                    sendReply(new ServerReply("["+this.socket.getInetAddress().getHostAddress()+ "] Hey, I received your Read request!"));
+                    if(server.isContained(((ReadRequest) request).getKey())) {
+                        sendReply(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + server.getValue(((ReadRequest) request).getKey())));
+                    }
+                    else{
+                        sendReply(new ServerReply("\u001B[31m" + "["+this.socket.getInetAddress().getHostAddress()+ "] This key does not exists!" + "\u001B[0m"));
+                    }
                 }
                 else if (request instanceof WriteRequest) {
-                    System.out.println("I received a Write request with key " + ((WriteRequest) request).getTuple().getKey() +
-                            " and value " + ((WriteRequest)request).getTuple().getValue()+ " at time " + ((WriteRequest) request).getTimestamp());
-                    sendReply(new ServerReply("["+this.socket.getInetAddress().getHostAddress()+ "] Hey, I received your Write request!"));
+                    server.setValue(((WriteRequest) request).getTuple().getKey(), ((WriteRequest) request).getTuple().getValue());
+                    server.showStore();
                 }
                 else {
-                    System.out.println("An unexpected type of request has been received and it has been ignored");
+                    System.out.println("\u001B[31m" + "["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and it has been ignored" + "\u001B[0m");
                 }
             }
         }catch (Exception e) {

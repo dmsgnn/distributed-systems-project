@@ -25,7 +25,7 @@ public class SocketWrapper implements Runnable {
             // Create the socket and bind i/o
             this.server = new Server(host, port);
             socket = new Socket(host, port);
-            in = new ObjectInputStream(socket.getInputStream());
+            in = new ObjectInputStream(new BufferedInputStream(socket.getInputStream()));
             out = new ObjectOutputStream(socket.getOutputStream());
             connected = true;
             new Thread(this).start();
@@ -80,10 +80,10 @@ public class SocketWrapper implements Runnable {
                 System.out.println(reply.getValue());
             }
         } catch(IOException | ClassNotFoundException e) {
+            //e.printStackTrace();
             e.getMessage();
             System.out.println("\nServer shut down \n ");
             exit(0);
-            //e.printStackTrace();
         }
     }
 }

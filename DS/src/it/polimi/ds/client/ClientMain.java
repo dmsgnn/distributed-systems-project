@@ -38,11 +38,6 @@ public class ClientMain {
             selectServer(connections, servers);
         } while (connections.size() != 1);
 
-        // some send to test the exchange of requests and replies
-        Timestamp instant;
-        connections.get(0).send(new ReadRequest((25), instant= Timestamp.from(Instant.now())));
-        connections.get(0).send(new WriteRequest(new Tuple(10, "testValue"), instant= Timestamp.from(Instant.now())));
-
         // choose the operation
         while (true) {
             menu(connections, servers);

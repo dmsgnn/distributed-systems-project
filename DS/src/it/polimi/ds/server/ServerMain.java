@@ -6,6 +6,9 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.Timestamp;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -18,6 +21,11 @@ public class ServerMain {
     //needed
     private final int portNumber;
     private final ExecutorService executor;
+
+    // store
+    private Map<Integer, String> store = new HashMap<>();
+    private Map<Integer, Timestamp> storeChronology = new HashMap<>();
+
     //constructor
     public ServerMain(int port){
         this.portNumber = port;
@@ -57,6 +65,29 @@ public class ServerMain {
         }
     }
 
+    // store access
+
+    public String getValue(int key) {
+        return store.get(key);
+    }
+
+    public void setValue(int key, String value){
+        store.put(key, value);
+    }
+
+    public boolean isContained (int key) {
+        return store.containsKey(key);
+    }
+
+    public void showStore() {
+        out.println("Store status");
+        out.println("Keys      Values");
+        for(Map.Entry<Integer, String> entry : store.entrySet()){
+            int space = 10 - String.valueOf(entry.getKey()).length();
+            String s = String.format("%"+space+"s", "");
+            out.println(entry.getKey() + s + entry.getValue());
+        }
+    }
 
     public static void main(String[] args) throws IOException {
         int portNumber;

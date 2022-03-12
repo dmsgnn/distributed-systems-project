@@ -3,7 +3,6 @@ package it.polimi.ds.messages;
 import it.polimi.ds.model.Tuple;
 
 import java.sql.Timestamp;
-import java.util.concurrent.TimeUnit;
 
 public class WriteRequest extends ClientRequest {
     private Tuple tuple;
