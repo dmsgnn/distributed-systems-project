@@ -28,7 +28,6 @@ public class ClientSocketHandler implements Runnable {
             new Thread(this).start();
         } catch (IOException e) {
             PrintHelper.printError("Failed to connect to " + host + ":" + port);
-            //System.out.println("[!] Failed to connect to " + host + ":" + port);
         }
     }
 
@@ -45,7 +44,6 @@ public class ClientSocketHandler implements Runnable {
             new Thread(this).start();
         } catch (Exception e) {
             PrintHelper.printError("Failed to connect to " + host + ":" + port);
-            //System.out.println("\u001B[31m" + "[!] Failed to connect to " + host + ":" + port + );
         }
     }
 

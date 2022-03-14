@@ -205,6 +205,7 @@ public class ClientMain {
         // send the request to all servers connected
         for (ClientSocketHandler s : connections) {
             s.send(new ReadRequest(key, ts));
+            
         }
     }
 }
