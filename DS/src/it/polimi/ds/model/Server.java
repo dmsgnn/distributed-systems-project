@@ -1,6 +1,8 @@
 package it.polimi.ds.model;
 
-public class Server {
+import java.io.Serializable;
+
+public class Server implements Serializable {
     private String host;
     private int port;
 
@@ -23,5 +25,24 @@ public class Server {
     public Server(String h, int p) {
         this.host = h;
         this.port = p;
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (obj == this)
+            return true;
+
+        if (obj == null || !(obj instanceof Server))
+            return false;
+
+        Server otherServer = (Server) obj;
+
+        if (! otherServer.getHost().equals(this.getHost()))
+            return false;
+        if (otherServer.getPort() != this.getPort())
+            return false;
+
+        return true;
     }
 }

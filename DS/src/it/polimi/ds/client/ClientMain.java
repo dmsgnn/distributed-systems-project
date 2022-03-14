@@ -20,6 +20,7 @@ import javax.xml.parsers.*;
 public class ClientMain {
 
     private static final String FILENAME = "DS/src/servers.xml";
+    private ArrayList<Server> serverConnections = new ArrayList<Server>();
 
     public static void main(String[] args) {
         System.out.println("  ____  ____                        _           _   \n" +
@@ -29,6 +30,11 @@ public class ClientMain {
                 " |____/|____/      | .__/|_|  \\___/, |\\___|\\___|\\__|\n" +
                 "                   |_|           |__/               ");
         System.out.println("Welcome to the most efficient distributed key storage, please connect to one of the servers below: ");
+        ClientMain client = new ClientMain();
+        client.startClient();
+    }
+
+    private void startClient() {
         List<ClientSocketHandler> connections = new ArrayList<>();
         List<Server> servers = getServers();
         // add the first server to the list of connections
@@ -42,7 +48,7 @@ public class ClientMain {
         }
     }
 
-    public static void selectServer(List<ClientSocketHandler> connections, List<Server> servers) {
+    public void selectServer(List<ClientSocketHandler> connections, List<Server> servers) {
         if (servers.size() != 0) {
             printServers(servers);
             Scanner sc = new Scanner (System.in);
@@ -53,6 +59,7 @@ public class ClientMain {
                 ClientSocketHandler s = new ClientSocketHandler(servers.get(choice));
                 if (s.isConnected()) {
                     connections.add(s);
+                    serverConnections.add(s.getServer());
                     servers.remove(servers.get(choice));
                 }
             } catch (IndexOutOfBoundsException e) {
@@ -66,7 +73,7 @@ public class ClientMain {
         }
     }
 
-    public static ClientSocketHandler selectConnection(List<ClientSocketHandler> connections) {
+    public ClientSocketHandler selectConnection(List<ClientSocketHandler> connections) {
         List<Server> servers = new ArrayList<>();
         for (ClientSocketHandler sock : connections) {
             servers.add(sock.getServer());
@@ -85,19 +92,20 @@ public class ClientMain {
         }
     }
 
-    public static void closeConnection(List<ClientSocketHandler> connections) { // TODO
+    public void closeConnection(List<ClientSocketHandler> connections) { // TODO
 
     }
 
-    private static void printServers(List<Server> servers) {
+    private void printServers(List<Server> servers) {
         int i = 1;
         for (Server s: servers) {
-            System.out.println(i + ") " + s.getHost() + ":" + s.getPort());
+            System.out.println(i + ") " + s.getHost() + " : " + s.getPort());
+            i++;
         }
     }
 
     // Get the servers from `servers.xml`
-    private static List<Server> getServers() {
+    private List<Server> getServers() {
         List<Server> res = new ArrayList<>();
         try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -123,7 +131,7 @@ public class ClientMain {
         return res;
     }
 
-    private static void menu(List<ClientSocketHandler> connections, List<Server> servers) {
+    private void menu(List<ClientSocketHandler> connections, List<Server> servers) {
         System.out.println("Select one of the following operations:");
         String[] options = {
                 "Add connection",       //1
@@ -170,7 +178,7 @@ public class ClientMain {
         }
     }
 
-    private static void doWrite(List<ClientSocketHandler> connections) {
+    private void doWrite(List<ClientSocketHandler> connections) {
         Scanner sc = new Scanner (System.in);
 
         // read key
@@ -187,11 +195,11 @@ public class ClientMain {
 
         // send the request to all servers connected
         for (ClientSocketHandler s : connections) {
-            s.send(new WriteRequest(new Tuple(key, value), ts));
+            s.send(new WriteRequest(new Tuple(key, value), ts, serverConnections));
         }
     }
 
-    private static void doRead(List<ClientSocketHandler> connections) {
+    private void doRead(List<ClientSocketHandler> connections) {
         Scanner sc = new Scanner (System.in);
 
         // read key

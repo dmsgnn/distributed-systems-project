@@ -7,12 +7,7 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 import it.polimi.ds.helpers.PrintHelper;
-import it.polimi.ds.messages.ClientRequest;
-import it.polimi.ds.messages.ReadRequest;
-import it.polimi.ds.messages.ServerReply;
-import it.polimi.ds.messages.WriteRequest;
-
-import static java.lang.System.out;
+import it.polimi.ds.messages.*;
 
 /**
  * Helps to manage each client connection, pairing it with the server. It holds the input stream to
@@ -65,6 +60,10 @@ public class ServerSocketHandler implements Runnable{
                 else if (request instanceof WriteRequest) {
                     server.setValue(((WriteRequest) request).getTuple().getKey(), ((WriteRequest) request).getTuple().getValue());
                     server.showStore();
+                    server.forward(request, ((WriteRequest) request).getServers());
+                }
+                else if( request instanceof ConnectionRequest){
+                    server.serverRequestConnection(((ConnectionRequest) request).getIp(), ((ConnectionRequest) request).getPort());
                 }
                 else {
                     PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and it has been ignored");
