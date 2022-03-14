@@ -1,26 +1,23 @@
-package it.polimi.ds.middleware;
+package it.polimi.ds.client;
 
+import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.messages.ClientRequest;
-import it.polimi.ds.messages.ReadRequest;
 import it.polimi.ds.messages.ServerReply;
-import it.polimi.ds.model.Operation;
-import it.polimi.ds.model.Request;
 import it.polimi.ds.model.Server;
-import it.polimi.ds.model.Tuple;
 
 import java.net.Socket;
 import java.io.*;
 
 import static java.lang.System.exit;
 
-public class SocketWrapper implements Runnable {
+public class ClientSocketHandler implements Runnable {
     private boolean connected = false;
     private Socket socket;
     private ObjectInputStream in;
     private ObjectOutputStream out;
     private Server server;
 
-    public SocketWrapper(String host, int port) {
+    public ClientSocketHandler(String host, int port) {
         try {
             // Create the socket and bind i/o
             this.server = new Server(host, port);
@@ -30,11 +27,12 @@ public class SocketWrapper implements Runnable {
             connected = true;
             new Thread(this).start();
         } catch (IOException e) {
-            System.out.println("[!] Failed to connect to " + host + ":" + port);
+            PrintHelper.printError("Failed to connect to " + host + ":" + port);
+            //System.out.println("[!] Failed to connect to " + host + ":" + port);
         }
     }
 
-    public SocketWrapper(Server s) {
+    public ClientSocketHandler(Server s) {
         String host = s.getHost();
         int port = s.getPort();
         try { // socket creation
@@ -46,7 +44,8 @@ public class SocketWrapper implements Runnable {
             connected = true;
             new Thread(this).start();
         } catch (Exception e) {
-            System.out.println("[!] Failed to connect to " + host + ":" + port);
+            PrintHelper.printError("Failed to connect to " + host + ":" + port);
+            //System.out.println("\u001B[31m" + "[!] Failed to connect to " + host + ":" + port + );
         }
     }
 
@@ -82,7 +81,7 @@ public class SocketWrapper implements Runnable {
         } catch(IOException | ClassNotFoundException e) {
             //e.printStackTrace();
             e.getMessage();
-            System.out.println("\nServer shut down \n ");
+            PrintHelper.printError("\nServer shut down \n ");
             exit(0);
         }
     }

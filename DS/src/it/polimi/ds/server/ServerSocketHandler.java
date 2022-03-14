@@ -6,6 +6,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
+import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.messages.ClientRequest;
 import it.polimi.ds.messages.ReadRequest;
 import it.polimi.ds.messages.ServerReply;
@@ -57,7 +58,7 @@ public class ServerSocketHandler implements Runnable{
                         sendReply(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + server.getValue(((ReadRequest) request).getKey())));
                     }
                     else{
-                        sendReply(new ServerReply("\u001B[31m" + "["+this.socket.getInetAddress().getHostAddress()+ "] This key does not exists!" + "\u001B[0m"));
+                        sendReply(new ServerReply("\u001B[31m" + "["+this.socket.getInetAddress().getHostAddress()+ "] Key " + ((ReadRequest) request).getKey() +" does not exists!" + "\u001B[0m"));
                     }
                 }
                 else if (request instanceof WriteRequest) {
@@ -65,7 +66,8 @@ public class ServerSocketHandler implements Runnable{
                     server.showStore();
                 }
                 else {
-                    System.out.println("\u001B[31m" + "["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and it has been ignored" + "\u001B[0m");
+                    PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and it has been ignored");
+                    //System.out.println("\u001B[31m" + "["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and it has been ignored" + "\u001B[0m");
                 }
             }
         }catch (Exception e) {

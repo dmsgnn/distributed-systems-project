@@ -1,17 +1,15 @@
 package it.polimi.ds.client;
 
+import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.messages.ReadRequest;
 import it.polimi.ds.messages.WriteRequest;
-import it.polimi.ds.middleware.SocketWrapper;
 
 import java.io.File;
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.TimeUnit;
 
 import it.polimi.ds.model.Server;
 import it.polimi.ds.model.Tuple;
@@ -31,7 +29,7 @@ public class ClientMain {
                 " |____/|____/      | .__/|_|  \\___/, |\\___|\\___|\\__|\n" +
                 "                   |_|           |__/               ");
         System.out.println("Welcome to the most efficient distributed key storage, please connect to one of the servers below: ");
-        List<SocketWrapper> connections = new ArrayList<>();
+        List<ClientSocketHandler> connections = new ArrayList<>();
         List<Server> servers = getServers();
         // add the first server to the list of connections
         do {
@@ -44,7 +42,7 @@ public class ClientMain {
         }
     }
 
-    public static void selectServer(List<SocketWrapper> connections, List<Server> servers) {
+    public static void selectServer(List<ClientSocketHandler> connections, List<Server> servers) {
         if (servers.size() != 0) {
             printServers(servers);
             Scanner sc = new Scanner (System.in);
@@ -52,23 +50,25 @@ public class ClientMain {
             sc.nextLine();
             // Try to create a connection with the selected server
             try {
-                SocketWrapper s = new SocketWrapper(servers.get(choice));
+                ClientSocketHandler s = new ClientSocketHandler(servers.get(choice));
                 if (s.isConnected()) {
                     connections.add(s);
                     servers.remove(servers.get(choice));
                 }
             } catch (IndexOutOfBoundsException e) {
-                System.out.println("[!] Invalid input...");
+                PrintHelper.printError("Invalid input...");
+                //System.out.println("[!] Invalid input...");
             }
         }
         else {
-            System.out.println("No server available :(");
+            PrintHelper.printError("No server available :(");
+            //System.out.println("No server available :(");
         }
     }
 
-    public static SocketWrapper selectConnection(List<SocketWrapper> connections) {
+    public static ClientSocketHandler selectConnection(List<ClientSocketHandler> connections) {
         List<Server> servers = new ArrayList<>();
-        for (SocketWrapper sock : connections) {
+        for (ClientSocketHandler sock : connections) {
             servers.add(sock.getServer());
         }
         if (connections.size() != 0) {
@@ -79,17 +79,14 @@ public class ClientMain {
             return connections.get(choice);
         }
         else {
-            System.out.println("No server available :(");
+            PrintHelper.printError("No server available :(");
+            //System.out.println("No server available :(");
             return null;
         }
     }
 
-    public static void closeConnection(List<SocketWrapper> connections) {
+    public static void closeConnection(List<ClientSocketHandler> connections) { // TODO
 
-    }
-
-    private static void printWelcome(List<Server> servers) {
-        printServers(servers);
     }
 
     private static void printServers(List<Server> servers) {
@@ -126,12 +123,12 @@ public class ClientMain {
         return res;
     }
 
-    private static void menu(List<SocketWrapper> connections, List<Server> servers) {
+    private static void menu(List<ClientSocketHandler> connections, List<Server> servers) {
         System.out.println("Select one of the following operations:");
         String[] options = {
                 "Add connection",       //1
                 "Detach connection",    //2
-                "Begin transacion",     //3
+                "Begin transaction",     //3
                 "Write",                //4
                 "Read",                 //5
                 "Commit transaction",   //6
@@ -173,7 +170,7 @@ public class ClientMain {
         }
     }
 
-    private static void doWrite(List<SocketWrapper> connections) {
+    private static void doWrite(List<ClientSocketHandler> connections) {
         Scanner sc = new Scanner (System.in);
 
         // read key
@@ -189,12 +186,12 @@ public class ClientMain {
         Timestamp ts = Timestamp.from(Instant.now());
 
         // send the request to all servers connected
-        for (SocketWrapper s : connections) {
+        for (ClientSocketHandler s : connections) {
             s.send(new WriteRequest(new Tuple(key, value), ts));
         }
     }
 
-    private static void doRead(List<SocketWrapper> connections) {
+    private static void doRead(List<ClientSocketHandler> connections) {
         Scanner sc = new Scanner (System.in);
 
         // read key
@@ -206,7 +203,7 @@ public class ClientMain {
         Timestamp ts = Timestamp.from(Instant.now());
 
         // send the request to all servers connected
-        for (SocketWrapper s : connections) {
+        for (ClientSocketHandler s : connections) {
             s.send(new ReadRequest(key, ts));
         }
     }
