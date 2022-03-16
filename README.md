@@ -14,8 +14,7 @@
 
 ## Todo-list
 ### Giovanni
-- Iniziare a lavorare sul it.polimi.ds.client.server
+- Capire come decidere per il forwarding in base a chi manda il messaggio (https://docs.oracle.com/javase/7/docs/api/java/net/Socket.html)
 
 ### Davide
-- Installazione framework
-- Iniziare a lavorare sul client
+- Gestire forwarding rispetto a parametro R nei server (modulo della chiave, forwardando agli R-1 server successivi)
