@@ -47,7 +47,8 @@ public class ServerSocketHandler implements Runnable{
         // TODO: using strings for errors is not good, it would be better doing an error enumeration
         try {
             while(true) {
-                ClientRequest request  = (ClientRequest) in.readObject();
+                ClientRequest request  = (ClientRequest) in.readObject(); // this is the client port
+                System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
                 if (request instanceof ReadRequest) {
                     if(server.isContained(((ReadRequest) request).getKey())) {
                         sendReply(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + server.getValue(((ReadRequest) request).getKey())));

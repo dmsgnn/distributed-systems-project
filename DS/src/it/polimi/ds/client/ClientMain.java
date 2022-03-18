@@ -1,10 +1,10 @@
 package it.polimi.ds.client;
 
+import it.polimi.ds.helpers.ConfigHelper;
 import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.messages.ReadRequest;
 import it.polimi.ds.messages.WriteRequest;
 
-import java.io.File;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -13,13 +13,11 @@ import java.util.Scanner;
 
 import it.polimi.ds.model.Server;
 import it.polimi.ds.model.Tuple;
-import org.w3c.dom.*;
-
-import javax.xml.parsers.*;
 
 public class ClientMain {
 
-    private static final String FILENAME = "DS/src/servers.xml";
+    private ConfigHelper ch;
+    private static final String FILENAME = "DS/src/config.xml";
     private ArrayList<Server> serverConnections = new ArrayList<Server>();
 
     public static void main(String[] args) {
@@ -35,8 +33,16 @@ public class ClientMain {
     }
 
     private void startClient() {
+
+        try {
+            this.ch = new ConfigHelper(FILENAME);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
         List<ClientSocketHandler> connections = new ArrayList<>();
-        List<Server> servers = getServers();
+        List<Server> servers = ch.getServerList();
         // add the first server to the list of connections
         do {
             selectServer(connections, servers);
@@ -99,36 +105,9 @@ public class ClientMain {
     private void printServers(List<Server> servers) {
         int i = 1;
         for (Server s: servers) {
-            System.out.println(i + ") " + s.getHost() + " : " + s.getPort());
+            System.out.println(i + ") " + s.getHost() + ":" + s.getPort());
             i++;
         }
-    }
-
-    // Get the servers from `servers.xml`
-    private List<Server> getServers() {
-        List<Server> res = new ArrayList<>();
-        try {
-            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            DocumentBuilder db = dbf.newDocumentBuilder();
-
-            Document serversDoc = db.parse(new File(FILENAME));
-            NodeList sList = serversDoc.getElementsByTagName("server");
-            for (int i = 0; i < sList.getLength(); i++) {
-                Node n = sList.item(i);
-                if(n.getNodeType() == Node.ELEMENT_NODE) {
-                    Element e = (Element) n;
-                    Server s = new Server(
-                            e.getElementsByTagName("host").item(0).getTextContent(),
-                            Integer.parseInt(e.getElementsByTagName("port").item(0).getTextContent())
-                            );
-                    res.add(s);
-                }
-            }
-        } catch(Exception e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
-        return res;
     }
 
     private void menu(List<ClientSocketHandler> connections, List<Server> servers) {
@@ -136,7 +115,7 @@ public class ClientMain {
         String[] options = {
                 "Add connection",       //1
                 "Detach connection",    //2
-                "Begin transaction",     //3
+                "Begin transaction",    //3
                 "Write",                //4
                 "Read",                 //5
                 "Commit transaction",   //6
@@ -161,20 +140,17 @@ public class ClientMain {
                 6. commit transaction
                 7. abort transaction
              */
-            case 1: // add connection
-                selectServer(connections, servers);
-                break;
-            case 4: // write tuple
-                doWrite(connections);
-                break;
-            case 5: // read tuple
-                doRead(connections);
-                break;
-            case 8: // exit
+            case 1 -> // add connection
+                    selectServer(connections, servers);
+            case 4 -> // write tuple
+                    doWrite(connections);
+            case 5 -> // read tuple
+                    doRead(connections);
+            case 8 -> { // exit
                 System.out.println("Cya!");
                 System.exit(0);
-            default:
-                System.out.println("WORK IN PROGRESS... (the feature has yet to be implemented)");
+            }
+            default -> System.out.println("WORK IN PROGRESS... (the feature has yet to be implemented)");
         }
     }
 

@@ -4,13 +4,13 @@ import it.polimi.ds.model.Server;
 import it.polimi.ds.model.Tuple;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
+import java.util.List;
 
 public class WriteRequest extends ClientRequest {
     private Tuple tuple;
-    private ArrayList<Server> servers;
+    private List<Server> servers;
 
-    public WriteRequest(Tuple tuple, Timestamp timestamp, ArrayList<Server> servers) {
+    public WriteRequest(Tuple tuple, Timestamp timestamp, List<Server> servers) {
         this.servers = servers;
         super.timestamp = timestamp;
         this.tuple = tuple;
@@ -20,7 +20,7 @@ public class WriteRequest extends ClientRequest {
         return tuple;
     }
 
-    public ArrayList<Server> getServers() {
+    public List<Server> getServers() {
         return servers;
     }
 }

@@ -1,6 +1,7 @@
 package it.polimi.ds.server;
 
 import it.polimi.ds.client.ClientSocketHandler;
+import it.polimi.ds.helpers.ConfigHelper;
 import it.polimi.ds.messages.ClientRequest;
 import it.polimi.ds.messages.ConnectionRequest;
 import it.polimi.ds.messages.WriteRequest;
@@ -29,12 +30,13 @@ import static java.lang.System.*;
  */
 public class ServerMain {
     //needed
+    private ConfigHelper ch;
     private int R;
     private final int portNumber;
     private final ExecutorService executor;
     List<ClientSocketHandler> serverConnections = new ArrayList<>();
 
-    private static final String FILENAME = "DS/src/servers.xml";
+    private static final String FILENAME = "DS/src/config.xml";
 
     // store
     private Map<Integer, String> store = new HashMap<>();
@@ -51,6 +53,14 @@ public class ServerMain {
      * creates a ServerSocketHandler for each client
      */
     public void startServer() {
+
+        try {
+            this.ch = new ConfigHelper(FILENAME);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
         System.out.println("Port number: " + portNumber);
         ServerSocket serverSocket = null;
         System.out.println("Server started!");
@@ -142,9 +152,9 @@ public class ServerMain {
      * @param request is the request received by one or more servers which must be forwarded to other servers
      */
     // wip
-    public void forward(ClientRequest request, ArrayList<Server> servers){
+    public void forward(ClientRequest request, List<Server> servers){
         WriteRequest r = (WriteRequest) request;
-        WriteRequest r1 = new WriteRequest(r.getTuple(), r.getTimestamp(), getServers());
+        WriteRequest r1 = new WriteRequest(r.getTuple(), r.getTimestamp(), ch.getServerList());
         for (ClientSocketHandler sock : serverConnections) {
             if(! servers.contains(sock.getServer())) {
                sock.send(r1);
@@ -157,7 +167,7 @@ public class ServerMain {
      */
     // wip
     private void serverStartingConnection() throws InterruptedException {
-        List<Server> servers = getServers();
+        List<Server> servers = ch.getServerList();
         // TODO : use ip instead of port number
         for(Server server: servers) {
             if (server.getPort() != portNumber && isSocketAlive(server.getHost(), server.getPort())) {
