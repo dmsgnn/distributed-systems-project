@@ -6,11 +6,11 @@ import it.polimi.ds.model.Tuple;
 import java.sql.Timestamp;
 import java.util.List;
 
-public class WriteRequest extends ClientRequest {
+public class WriteMessage extends Message {
     private Tuple tuple;
     private List<Server> servers;
 
-    public WriteRequest(Tuple tuple, Timestamp timestamp, List<Server> servers) {
+    public WriteMessage(Tuple tuple, Timestamp timestamp, List<Server> servers) {
         this.servers = servers;
         super.timestamp = timestamp;
         this.tuple = tuple;

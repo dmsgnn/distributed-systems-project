@@ -2,8 +2,8 @@ package it.polimi.ds.client;
 
 import it.polimi.ds.helpers.ConfigHelper;
 import it.polimi.ds.helpers.PrintHelper;
-import it.polimi.ds.messages.ReadRequest;
-import it.polimi.ds.messages.WriteRequest;
+import it.polimi.ds.messages.ReadMessage;
+import it.polimi.ds.messages.WriteMessage;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -41,7 +41,7 @@ public class ClientMain {
             System.exit(1);
         }
 
-        List<ClientSocketHandler> connections = new ArrayList<>();
+        List<SocketHandler> connections = new ArrayList<>();
         List<Server> servers = ch.getServerList();
         // add the first server to the list of connections
         do {
@@ -54,7 +54,7 @@ public class ClientMain {
         }
     }
 
-    public void selectServer(List<ClientSocketHandler> connections, List<Server> servers) {
+    public void selectServer(List<SocketHandler> connections, List<Server> servers) {
         if (servers.size() != 0) {
             printServers(servers);
             Scanner sc = new Scanner (System.in);
@@ -62,7 +62,7 @@ public class ClientMain {
             sc.nextLine();
             // Try to create a connection with the selected server
             try {
-                ClientSocketHandler s = new ClientSocketHandler(servers.get(choice));
+                SocketHandler s = new SocketHandler(servers.get(choice));
                 if (s.isConnected()) {
                     connections.add(s);
                     serverConnections.add(s.getServer());
@@ -79,9 +79,9 @@ public class ClientMain {
         }
     }
 
-    public ClientSocketHandler selectConnection(List<ClientSocketHandler> connections) {
+    public SocketHandler selectConnection(List<SocketHandler> connections) {
         List<Server> servers = new ArrayList<>();
-        for (ClientSocketHandler sock : connections) {
+        for (SocketHandler sock : connections) {
             servers.add(sock.getServer());
         }
         if (connections.size() != 0) {
@@ -98,7 +98,7 @@ public class ClientMain {
         }
     }
 
-    public void closeConnection(List<ClientSocketHandler> connections) { // TODO
+    public void closeConnection(List<SocketHandler> connections) { // TODO
 
     }
 
@@ -110,7 +110,7 @@ public class ClientMain {
         }
     }
 
-    private void menu(List<ClientSocketHandler> connections, List<Server> servers) {
+    private void menu(List<SocketHandler> connections, List<Server> servers) {
         System.out.println("Select one of the following operations:");
         String[] options = {
                 "Add connection",       //1
@@ -154,7 +154,7 @@ public class ClientMain {
         }
     }
 
-    private void doWrite(List<ClientSocketHandler> connections) {
+    private void doWrite(List<SocketHandler> connections) {
         Scanner sc = new Scanner (System.in);
 
         // read key
@@ -170,12 +170,12 @@ public class ClientMain {
         Timestamp ts = Timestamp.from(Instant.now());
 
         // send the request to all servers connected
-        for (ClientSocketHandler s : connections) {
-            s.send(new WriteRequest(new Tuple(key, value), ts, serverConnections));
+        for (SocketHandler s : connections) {
+            s.send(new WriteMessage(new Tuple(key, value), ts, serverConnections));
         }
     }
 
-    private void doRead(List<ClientSocketHandler> connections) {
+    private void doRead(List<SocketHandler> connections) {
         Scanner sc = new Scanner (System.in);
 
         // read key
@@ -187,8 +187,8 @@ public class ClientMain {
         Timestamp ts = Timestamp.from(Instant.now());
 
         // send the request to all servers connected
-        for (ClientSocketHandler s : connections) {
-            s.send(new ReadRequest(key, ts));
+        for (SocketHandler s : connections) {
+            s.send(new ReadMessage(key, ts));
             
         }
     }

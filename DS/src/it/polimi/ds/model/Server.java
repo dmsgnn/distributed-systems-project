@@ -5,6 +5,11 @@ import java.io.Serializable;
 public class Server implements Serializable {
     private String host;
     private int port;
+    private int id;
+
+    public int getId() {
+        return id;
+    }
 
     public String getHost() {
         return host;
@@ -22,7 +27,7 @@ public class Server implements Serializable {
         this.port = port;
     }
 
-    public Server(String h, int p) {
+    public Server(String h, int p, int id) {
         this.host = h;
         this.port = p;
     }

@@ -1,12 +1,11 @@
 package it.polimi.ds.messages;
 
 import java.sql.Timestamp;
-import java.util.concurrent.TimeUnit;
 
-public class ReadRequest extends ClientRequest {
+public class ReadMessage extends Message {
     private Integer key;
 
-    public ReadRequest(Integer key, Timestamp timestamp) {
+    public ReadMessage(Integer key, Timestamp timestamp) {
         super.timestamp = timestamp;
         this.key = key;
     }

@@ -47,7 +47,8 @@ public class ConfigHelper {
                 Element e = (Element) n;
                 Server s = new Server(
                         e.getElementsByTagName("host").item(0).getTextContent(),
-                        Integer.parseInt(e.getElementsByTagName("port").item(0).getTextContent())
+                        Integer.parseInt(e.getElementsByTagName("port").item(0).getTextContent()),
+                        Integer.parseInt(e.getElementsByTagName("id").item(0).getTextContent())
                 );
                 res.add(s);
             }

@@ -11,7 +11,7 @@ import it.polimi.ds.messages.*;
 
 /**
  * Helps to manage each client connection, pairing it with the server. It holds the input stream to
- * receive {@link ClientRequest} and holds an output stream to send the {@link ServerReply}
+ * receive {@link Message} and holds an output stream to send the {@link ServerReply}
  */
 public class ServerSocketHandler implements Runnable{
     private static final Object lock = new Object();
@@ -47,24 +47,24 @@ public class ServerSocketHandler implements Runnable{
         // TODO: using strings for errors is not good, it would be better doing an error enumeration
         try {
             while(true) {
-                ClientRequest request  = (ClientRequest) in.readObject(); // this is the client port
+                Message message = (Message) in.readObject(); // this is the client port
                 System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
-                if (request instanceof ReadRequest) {
-                    if(server.isContained(((ReadRequest) request).getKey())) {
-                        sendReply(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + server.getValue(((ReadRequest) request).getKey())));
+                if (message instanceof ReadMessage) {
+                    if(server.isContained(((ReadMessage) message).getKey())) {
+                        sendReply(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + server.getValue(((ReadMessage) message).getKey())));
                     }
                     else{
-                        PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] Key " + ((ReadRequest) request).getKey() +" does not exists!");
+                        PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] Key " + ((ReadMessage) message).getKey() +" does not exists!");
                         //sendReply(new ServerReply("\u001B[31m" + "["+this.socket.getInetAddress().getHostAddress()+ "] Key " + ((ReadRequest) request).getKey() +" does not exists!" + "\u001B[0m"));
                     }
                 }
-                else if (request instanceof WriteRequest) {
-                    server.setValue(((WriteRequest) request).getTuple().getKey(), ((WriteRequest) request).getTuple().getValue());
+                else if (message instanceof WriteMessage) {
+                    server.setValue(((WriteMessage) message).getTuple().getKey(), ((WriteMessage) message).getTuple().getValue());
                     server.showStore();
-                    server.forward(request, ((WriteRequest) request).getServers());
+                    server.forward(message);
                 }
-                else if( request instanceof ConnectionRequest){
-                    server.serverRequestConnection(((ConnectionRequest) request).getIp(), ((ConnectionRequest) request).getPort());
+                else if (message instanceof HandshakeMessage) {
+                    server.addAcceptedServer(((HandshakeMessage) message).getServerId(), this);
                 }
                 else {
                     PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and it has been ignored");
@@ -88,7 +88,7 @@ public class ServerSocketHandler implements Runnable{
      * Sends a reply to the client
      * @param reply is the message to send
      */
-    public void sendReply(ServerReply reply) {
+    public void sendReply(Message reply) {
         try {
             out.writeObject(reply);
             out.flush();

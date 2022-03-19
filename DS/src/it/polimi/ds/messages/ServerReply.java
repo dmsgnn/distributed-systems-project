@@ -1,8 +1,6 @@
 package it.polimi.ds.messages;
 
-import java.io.Serializable;
-
-public class ServerReply implements Serializable {
+public class ServerReply extends Message {
     private String value;
 
     public ServerReply(String value) {
