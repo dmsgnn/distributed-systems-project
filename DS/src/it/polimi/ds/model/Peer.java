@@ -2,7 +2,7 @@ package it.polimi.ds.model;
 
 import java.io.Serializable;
 
-public class Server implements Serializable {
+public class Peer implements Serializable {
     private String host;
     private int port;
     private int id;
@@ -27,9 +27,10 @@ public class Server implements Serializable {
         this.port = port;
     }
 
-    public Server(String h, int p, int id) {
+    public Peer(String h, int p, int id) {
         this.host = h;
         this.port = p;
+        this.id = id;
     }
 
     @Override
@@ -38,14 +39,14 @@ public class Server implements Serializable {
         if (obj == this)
             return true;
 
-        if (obj == null || !(obj instanceof Server))
+        if (obj == null || !(obj instanceof Peer))
             return false;
 
-        Server otherServer = (Server) obj;
+        Peer otherPeer = (Peer) obj;
 
-        if (! otherServer.getHost().equals(this.getHost()))
+        if (! otherPeer.getHost().equals(this.getHost()))
             return false;
-        if (otherServer.getPort() != this.getPort())
+        if (otherPeer.getPort() != this.getPort())
             return false;
 
         return true;

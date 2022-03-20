@@ -4,7 +4,7 @@
 - 2 jar: **Client** e **Server**
 - Librerie Socket: `java.net.*`
 - Interfaccia client: 1) `write <key> <val>` e 2) `read <key>`
-- Il client deve poter scegliere il it.polimi.ds.client.server da contattare
+- Il client deve poter scegliere il it.polimi.ds.client.peer da contattare
 - No persistenza
 
 ## Classi
@@ -17,4 +17,4 @@
 - Capire come decidere per il forwarding in base a chi manda il messaggio (https://docs.oracle.com/javase/7/docs/api/java/net/Socket.html)
 
 ### Davide
-- Gestire forwarding rispetto a parametro R nei server (modulo della chiave, forwardando agli R-1 server successivi)
+- Gestire forwarding rispetto a parametro R nei peer (modulo della chiave, forwardando agli R-1 peer successivi)

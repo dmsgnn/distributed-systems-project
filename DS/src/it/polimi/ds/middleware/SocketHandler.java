@@ -1,10 +1,10 @@
-package it.polimi.ds.client;
+package it.polimi.ds.middleware;
 
 import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.messages.Message;
 import it.polimi.ds.messages.ServerReply;
 import it.polimi.ds.messages.WriteMessage;
-import it.polimi.ds.model.Server;
+import it.polimi.ds.model.Peer;
 import it.polimi.ds.server.ServerMain;
 
 import java.net.Socket;
@@ -12,23 +12,24 @@ import java.io.*;
 
 import static java.lang.System.exit;
 
-public class SocketHandler implements Runnable {
+public abstract class SocketHandler implements Runnable {
     private boolean connected = false;
-    private Socket socket;
-    private ObjectInputStream in;
-    private ObjectOutputStream out;
-    private Server server;
-    private ServerMain serverMain;
+    private Peer peer;
 
-    public SocketHandler(Server s) {
+    //socket attributes
+    protected Socket socket;
+    protected ObjectInputStream in;
+    protected ObjectOutputStream out;
+
+    public SocketHandler(Peer s) {
         String host = s.getHost();
         int port = s.getPort();
         try { // socket creation
-            this.server = s;
+            this.peer = s;
             Socket sock = new Socket(host, port);
             this.socket = sock;
             out = new ObjectOutputStream(this.socket.getOutputStream());
-            in = new ObjectInputStream(new BufferedInputStream(this.socket.getInputStream()));
+            in = new ObjectInputStream(/*new BufferedInputStream*/(this.socket.getInputStream()));
             connected = true;
             new Thread(this).start();
         } catch (Exception e) {
@@ -36,20 +37,14 @@ public class SocketHandler implements Runnable {
         }
     }
 
-    public SocketHandler(Server s, ServerMain sm) {
-        this.serverMain = sm;
-        String host = s.getHost();
-        int port = s.getPort();
-        try { // socket creation
-            this.server = s;
-            Socket sock = new Socket(host, port);
-            this.socket = sock;
+    public SocketHandler(Socket s) {
+        try {
+            this.socket = s;
             out = new ObjectOutputStream(this.socket.getOutputStream());
             in = new ObjectInputStream(new BufferedInputStream(this.socket.getInputStream()));
             connected = true;
-            new Thread(this).start();
         } catch (Exception e) {
-            PrintHelper.printError("Failed to connect to " + host + ":" + port);
+            PrintHelper.printError("Failed to connect...");
         }
     }
 
@@ -63,17 +58,20 @@ public class SocketHandler implements Runnable {
         }
     }
 
-    public Server getServer() {
-        return this.server;
+    public Peer getPeer() {
+        return this.peer;
     }
 
     public boolean isConnected() {
         return this.connected;
     }
 
+    @Override
+    abstract public void run();
+    /*
     /**
      * Thread to remain open to accept server replies
-     */
+
     @Override
     public void run() {
         try {
@@ -96,4 +94,5 @@ public class SocketHandler implements Runnable {
             exit(0);
         }
     }
+    */
 }

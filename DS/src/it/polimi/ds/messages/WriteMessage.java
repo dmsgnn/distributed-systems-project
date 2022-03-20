@@ -1,6 +1,6 @@
 package it.polimi.ds.messages;
 
-import it.polimi.ds.model.Server;
+import it.polimi.ds.model.Peer;
 import it.polimi.ds.model.Tuple;
 
 import java.sql.Timestamp;
@@ -8,10 +8,10 @@ import java.util.List;
 
 public class WriteMessage extends Message {
     private Tuple tuple;
-    private List<Server> servers;
+    private List<Peer> peers;
 
-    public WriteMessage(Tuple tuple, Timestamp timestamp, List<Server> servers) {
-        this.servers = servers;
+    public WriteMessage(Tuple tuple, Timestamp timestamp, List<Peer> peers) {
+        this.peers = peers;
         super.timestamp = timestamp;
         this.tuple = tuple;
     }
@@ -20,7 +20,7 @@ public class WriteMessage extends Message {
         return tuple;
     }
 
-    public List<Server> getServers() {
-        return servers;
+    public List<Peer> getServers() {
+        return peers;
     }
 }

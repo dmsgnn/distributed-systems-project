@@ -1,6 +1,6 @@
 package it.polimi.ds.helpers;
 
-import it.polimi.ds.model.Server;
+import it.polimi.ds.model.Peer;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -38,14 +38,14 @@ public class ConfigHelper {
     /**
      * @return The list of server saved in the config.xml file.
      */
-    public List<Server> getServerList() {
-        ArrayList<Server> res = new ArrayList<>();
-        NodeList sList = doc.getElementsByTagName("server");
+    public List<Peer> getPeerList() {
+        ArrayList<Peer> res = new ArrayList<>();
+        NodeList sList = doc.getElementsByTagName("peer");
         for (int i = 0; i < sList.getLength(); i++) {
             Node n = sList.item(i);
             if(n.getNodeType() == Node.ELEMENT_NODE) {
                 Element e = (Element) n;
-                Server s = new Server(
+                Peer s = new Peer(
                         e.getElementsByTagName("host").item(0).getTextContent(),
                         Integer.parseInt(e.getElementsByTagName("port").item(0).getTextContent()),
                         Integer.parseInt(e.getElementsByTagName("id").item(0).getTextContent())

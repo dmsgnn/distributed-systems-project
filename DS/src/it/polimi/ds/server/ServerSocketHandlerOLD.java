@@ -13,7 +13,7 @@ import it.polimi.ds.messages.*;
  * Helps to manage each client connection, pairing it with the server. It holds the input stream to
  * receive {@link Message} and holds an output stream to send the {@link ServerReply}
  */
-public class ServerSocketHandler implements Runnable{
+public class ServerSocketHandlerOLD implements Runnable{
     private static final Object lock = new Object();
 
     private Socket socket;
@@ -27,7 +27,7 @@ public class ServerSocketHandler implements Runnable{
      * @param socket client connection
      * @param server server to be connected with
      */
-    public ServerSocketHandler(Socket socket, ServerMain server) {
+    public ServerSocketHandlerOLD(Socket socket, ServerMain server) {
         this.socket = socket;
         this.server = server;
 

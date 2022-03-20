@@ -1,24 +1,15 @@
 package it.polimi.ds.client;
 
-import it.polimi.ds.helpers.ConfigHelper;
 import it.polimi.ds.helpers.PrintHelper;
-import it.polimi.ds.messages.ReadMessage;
-import it.polimi.ds.messages.WriteMessage;
 
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-import it.polimi.ds.model.Server;
-import it.polimi.ds.model.Tuple;
+import it.polimi.ds.model.Peer;
 
 public class ClientMain {
 
-    private ConfigHelper ch;
     private static final String FILENAME = "DS/src/config.xml";
-    private ArrayList<Server> serverConnections = new ArrayList<Server>();
 
     public static void main(String[] args) {
         System.out.println("  ____  ____                        _           _   \n" +
@@ -27,90 +18,37 @@ public class ClientMain {
                 " | |_| |___) |_____| |_) | | | (_) | |  __/ (__| |_ \n" +
                 " |____/|____/      | .__/|_|  \\___/, |\\___|\\___|\\__|\n" +
                 "                   |_|           |__/               ");
-        System.out.println("Welcome to the most efficient distributed key storage, please connect to one of the servers below: ");
-        ClientMain client = new ClientMain();
-        client.startClient();
-    }
+        System.out.println("Welcome to the most efficient distributed key storage, please connect to one of the peers below: ");
+        Client client = new Client(FILENAME);
 
-    private void startClient() {
-
-        try {
-            this.ch = new ConfigHelper(FILENAME);
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
-
-        List<SocketHandler> connections = new ArrayList<>();
-        List<Server> servers = ch.getServerList();
-        // add the first server to the list of connections
         do {
-            selectServer(connections, servers);
-        } while (connections.size() != 1);
+            menuSelectPeer(client);
+        } while (client.getConnectionsSize() != 1);
 
-        // choose the operation
-        while (true) {
-            menu(connections, servers);
-        }
+        while (true) menu(client);
     }
 
-    public void selectServer(List<SocketHandler> connections, List<Server> servers) {
-        if (servers.size() != 0) {
-            printServers(servers);
+    public static void menuSelectPeer(Client client) {
+        List<Peer> peers = client.getAvailablePeers();
+        if (peers.size() != 0) {
+            printPeers(peers);
             Scanner sc = new Scanner (System.in);
-            int choice = sc.nextInt() - 1;
+            int choice = sc.nextInt();
             sc.nextLine();
-            // Try to create a connection with the selected server
-            try {
-                SocketHandler s = new SocketHandler(servers.get(choice));
-                if (s.isConnected()) {
-                    connections.add(s);
-                    serverConnections.add(s.getServer());
-                    servers.remove(servers.get(choice));
-                }
-            } catch (IndexOutOfBoundsException e) {
-                PrintHelper.printError("Invalid input...");
-                //System.out.println("[!] Invalid input...");
-            }
+            client.connect(choice);
         }
         else {
-            PrintHelper.printError("No server available :(");
-            //System.out.println("No server available :(");
+            PrintHelper.printError("No peer available :(");
         }
     }
 
-    public SocketHandler selectConnection(List<SocketHandler> connections) {
-        List<Server> servers = new ArrayList<>();
-        for (SocketHandler sock : connections) {
-            servers.add(sock.getServer());
-        }
-        if (connections.size() != 0) {
-            printServers(servers);
-            Scanner sc = new Scanner (System.in);
-            int choice = sc.nextInt() - 1;
-            sc.nextLine();
-            return connections.get(choice);
-        }
-        else {
-            PrintHelper.printError("No server available :(");
-            //System.out.println("No server available :(");
-            return null;
+    private static void printPeers(List<Peer> peers) {
+        for (Peer s: peers) {
+            System.out.println(s.getId() + ") " + s.getHost() + ":" + s.getPort());
         }
     }
 
-    public void closeConnection(List<SocketHandler> connections) { // TODO
-
-    }
-
-    private void printServers(List<Server> servers) {
-        int i = 1;
-        for (Server s: servers) {
-            System.out.println(i + ") " + s.getHost() + ":" + s.getPort());
-            i++;
-        }
-    }
-
-    private void menu(List<SocketHandler> connections, List<Server> servers) {
+    private static void menu(Client client) {
         System.out.println("Select one of the following operations:");
         String[] options = {
                 "Add connection",       //1
@@ -141,11 +79,11 @@ public class ClientMain {
                 7. abort transaction
              */
             case 1 -> // add connection
-                    selectServer(connections, servers);
+                    menuSelectPeer(client);
             case 4 -> // write tuple
-                    doWrite(connections);
+                    menuWrite(client);
             case 5 -> // read tuple
-                    doRead(connections);
+                    menuRead(client);
             case 8 -> { // exit
                 System.out.println("Cya!");
                 System.exit(0);
@@ -154,7 +92,7 @@ public class ClientMain {
         }
     }
 
-    private void doWrite(List<SocketHandler> connections) {
+    private static void menuWrite(Client client) {
         Scanner sc = new Scanner (System.in);
 
         // read key
@@ -166,16 +104,10 @@ public class ClientMain {
         System.out.print("Value: ");
         String value = sc.nextLine();
 
-        // prepare the timestamp
-        Timestamp ts = Timestamp.from(Instant.now());
-
-        // send the request to all servers connected
-        for (SocketHandler s : connections) {
-            s.send(new WriteMessage(new Tuple(key, value), ts, serverConnections));
-        }
+        client.write(key, value);
     }
 
-    private void doRead(List<SocketHandler> connections) {
+    private static void menuRead(Client client) {
         Scanner sc = new Scanner (System.in);
 
         // read key
@@ -183,13 +115,6 @@ public class ClientMain {
         int key = sc.nextInt();
         sc.nextLine();
 
-        // prepare the timestamp
-        Timestamp ts = Timestamp.from(Instant.now());
-
-        // send the request to all servers connected
-        for (SocketHandler s : connections) {
-            s.send(new ReadMessage(key, ts));
-            
-        }
+        client.read(key);
     }
 }

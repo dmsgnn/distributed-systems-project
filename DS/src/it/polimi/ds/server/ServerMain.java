@@ -1,11 +1,11 @@
 package it.polimi.ds.server;
 
-import it.polimi.ds.client.SocketHandler;
+import it.polimi.ds.middleware.SocketHandler;
 import it.polimi.ds.helpers.ConfigHelper;
 import it.polimi.ds.messages.HandshakeMessage;
 import it.polimi.ds.messages.Message;
 import it.polimi.ds.messages.WriteMessage;
-import it.polimi.ds.model.Server;
+import it.polimi.ds.model.Peer;
 
 import java.io.*;
 import java.net.*;
@@ -32,7 +32,7 @@ public class ServerMain {
 
     // sockets between servers
     List<SocketHandler> serverConnections = new ArrayList<>();
-    private Map<Integer, ServerSocketHandler> servers = new HashMap<>();
+    private Map<Integer, ServerSocketHandlerOLD> servers = new HashMap<>();
 
     private static final String FILENAME = "DS/src/config.xml";
 
@@ -46,10 +46,11 @@ public class ServerMain {
         executor = Executors.newCachedThreadPool();
     }
 
+    /*
     /**
      * Starts the server to listen to clients and to accept their connection
      * creates a ServerSocketHandler for each client
-     */
+     *
     public void startServer() {
 
         try {
@@ -80,13 +81,13 @@ public class ServerMain {
                     e.printStackTrace();
                 }
                 assert clientSocket != null;
-                ServerSocketHandler connection = new ServerSocketHandler(clientSocket, this);
+                ServerSocketHandlerOLD connection = new ServerSocketHandlerOLD(clientSocket, this);
                 executor.submit(connection);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
+    }*/
 
     // store access
 
@@ -122,9 +123,9 @@ public class ServerMain {
     // wip
     public void forward(Message message){
         WriteMessage r = (WriteMessage) message;
-        WriteMessage r1 = new WriteMessage(r.getTuple(), r.getTimestamp(), ch.getServerList());
+        WriteMessage r1 = new WriteMessage(r.getTuple(), r.getTimestamp(), ch.getPeerList());
         for (SocketHandler sock : serverConnections) {
-            if(! ((WriteMessage) message).getServers().contains(sock.getServer())) {
+            if(! ((WriteMessage) message).getServers().contains(sock.getPeer())) {
                sock.send(r1);
             }
         }
@@ -135,20 +136,21 @@ public class ServerMain {
         }
     }
 
+    /*
     /**
      * used when server starts, it connects with all available servers
-     */
+     *
     // wip
     private void serverStartingConnection() throws InterruptedException {
-        List<Server> servers = ch.getServerList();
+        List<Peer> peers = ch.getPeerList();
         // TODO : use ip instead of port number
-        for(Server server: servers) {
-            if (server.getPort() != portNumber && isSocketAlive(server.getHost(), server.getPort())) {
+        for(Peer peer : peers) {
+            if (peer.getPort() != portNumber && isSocketAlive(peer.getHost(), peer.getPort())) {
                 out.println("connecting with other servers...");
-                SocketHandler s = new SocketHandler(server, this);
+                SocketHandler s = new SocketHandler(peer, this);
                 serverConnections.add(s);
-                List<Server> l = ch.getServerList();
-                for (Server elem : l) {
+                List<Peer> l = ch.getPeerList();
+                for (Peer elem : l) {
                     InetAddress inetAddress = null;
                     try {
                         inetAddress = InetAddress.getLocalHost();
@@ -163,7 +165,7 @@ public class ServerMain {
                 s.send(new HandshakeMessage(this.id));
             }
         }
-    }
+    }*/
 
     public static boolean isSocketAlive(String ip, int port){
         boolean isAlive = false;
@@ -182,31 +184,17 @@ public class ServerMain {
     }
 
     public static void main(String[] args) throws IOException {
-        int portNumber;
-        InetAddress inetAddress = null;
-        /*
-        try {
-            inetAddress = InetAddress.getLocalHost();
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
-        */
-
-        if(inetAddress != null)
-            System.out.println("Hello, I'm on: " + inetAddress.getHostAddress());
+        int id;
+        if(args.length >= 1)
+            id = Integer.parseInt(args[0]);
         else
-            System.out.println("Hello, I'm on: 127.0.0.1");
+            id = 0;
 
-        if(args.length >= 1 && Integer.parseInt(args[0])>1024)
-            portNumber = Integer.parseInt(args[0]);
-        else
-            portNumber = 4000;
-
-        ServerMain server = new ServerMain(portNumber);
-        server.startServer();
+        Server server = new Server(id, FILENAME);
+        //server.startServer();
     }
 
-    public void addAcceptedServer(int id, ServerSocketHandler s) {
+    public void addAcceptedServer(int id, ServerSocketHandlerOLD s) {
         this.servers.put(id, s);
     }
 }
