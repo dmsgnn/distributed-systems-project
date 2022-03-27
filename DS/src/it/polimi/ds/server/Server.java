@@ -147,6 +147,12 @@ public class Server {
         System.out.println("[i] Connection established with server " + serverId);
     }
 
+    /**
+     * Given a socket returns the ID of the server connected on that socket, if any.
+     * @param sock
+     * @return The ID of the server connected to that socket.
+     * Returns -1 if the socket does not model a connection to a server (i.e. the connection is to a client).
+     */
     public int getSocketId(SocketHandler sock) {
         for (Map.Entry<Integer, SocketHandler> elem : connectionsToServers.entrySet()) {
             if (elem.getValue() == sock) {

@@ -7,6 +7,7 @@ import it.polimi.ds.model.Peer;
 
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
 
 import static java.lang.System.exit;
 
@@ -28,10 +29,12 @@ public class ClientSocketHandler extends SocketHandler {
                     if(message instanceof ServerReply) {
                         System.out.println(((ServerReply) message).getValue());
                     }
-                } catch(EOFException e) {
+                } catch (EOFException e) {
                     System.out.println("Nothing to read...");
                 }
             }
+        } catch (SocketException e) {
+            System.out.println("Connection closed successfully!");
         } catch(IOException | ClassNotFoundException e) {
             e.printStackTrace();
             e.getMessage();

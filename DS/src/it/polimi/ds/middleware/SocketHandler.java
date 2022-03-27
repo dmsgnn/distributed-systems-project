@@ -58,6 +58,13 @@ public abstract class SocketHandler implements Runnable {
         }
     }
 
+    public void disconnect() throws IOException {
+        this.socket.close();
+        this.in.close();
+        this.out.close();
+        Thread.currentThread().interrupt();
+    }
+
     public Peer getPeer() {
         return this.peer;
     }

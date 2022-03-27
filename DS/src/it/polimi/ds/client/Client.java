@@ -49,6 +49,31 @@ public class Client {
         }
     }
 
+    public void detach(int peerId) {
+        try {
+            SocketHandler target = null;
+            for (SocketHandler s : connections) {
+                if (s.getPeer().getId() == peerId) {
+                    target = s;
+                    break;
+                }
+            }
+            if(target == null) {
+                PrintHelper.printError("Invalid input...");
+                return;
+            }
+            else {
+                target.disconnect();
+                connections.remove(target);
+                Peer toRemove = this.getPeer(peerId);
+                peers.add(toRemove);
+                peersConnected.remove(toRemove);
+            }
+        } catch (Exception e) {
+            PrintHelper.printError("An unexpected error occurred while detaching from server...");
+        }
+    }
+
     public List<Peer> getAvailablePeers() {
         return this.peers;
     }
@@ -57,9 +82,17 @@ public class Client {
         return this.connections.size();
     }
 
+    public List<Peer> getPeersConnected() {
+        return this.peersConnected;
+    }
+
     public Peer getPeer(int peerId) {
         for (Peer elem : peers) {
-            System.out.println(elem.getId());
+            if (elem.getId() == peerId) {
+                return elem;
+            }
+        }
+        for (Peer elem : peersConnected) {
             if (elem.getId() == peerId) {
                 return elem;
             }
@@ -88,5 +121,4 @@ public class Client {
             s.send(new ReadMessage(key, ts, peersConnected));
         }
     }
-
 }

@@ -22,23 +22,33 @@ public class ClientMain {
         Client client = new Client(FILENAME);
 
         do {
-            menuSelectPeer(client);
+            int peerId = menuSelectPeer(client.getAvailablePeers());
+            client.connect(peerId);
         } while (client.getConnectionsSize() != 1);
 
-        while (true) menu(client);
+        while (true) {
+            menu(client);
+            if (client.getConnectionsSize() == 0) {
+                do {
+                    System.out.println("Please connect to one of the peers below: ");
+                    int peerId = menuSelectPeer(client.getAvailablePeers());
+                    client.connect(peerId);
+                } while (client.getConnectionsSize() != 1);
+            }
+        }
     }
 
-    public static void menuSelectPeer(Client client) {
-        List<Peer> peers = client.getAvailablePeers();
+    public static int menuSelectPeer(List<Peer> peers) {
         if (peers.size() != 0) {
             printPeers(peers);
             Scanner sc = new Scanner (System.in);
             int choice = sc.nextInt();
             sc.nextLine();
-            client.connect(choice);
+            return choice;
         }
         else {
             PrintHelper.printError("No peer available :(");
+            return -1;
         }
     }
 
@@ -73,13 +83,18 @@ public class ClientMain {
         switch (choice) {
             /*
                 Yet to implement:
-                2. detach
                 3. begin transaction
                 6. commit transaction
                 7. abort transaction
              */
-            case 1 -> // add connection
-                    menuSelectPeer(client);
+            case 1 -> { // add connection
+                int peerId = menuSelectPeer(client.getAvailablePeers());
+                client.connect(peerId);
+            }
+            case 2 -> { // detach connection
+                int peerId = menuSelectPeer(client.getPeersConnected());
+                client.detach(peerId);
+            }
             case 4 -> // write tuple
                     menuWrite(client);
             case 5 -> // read tuple

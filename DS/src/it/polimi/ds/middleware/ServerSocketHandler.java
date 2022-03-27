@@ -52,13 +52,16 @@ public class ServerSocketHandler extends SocketHandler {
                 }
             }
         }catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
             //e.getMessage();
             try {
+                System.out.println("Closing connection with " + socket.getInetAddress().getHostAddress() + ":" + socket.getPort() + "...");
                 socket.close();
                 in.close();
                 out.close();
+                System.out.println("Connection closed successfully!");
             } catch (IOException ioException) {
+                PrintHelper.printError("Unexpected error while closing the connection.");
                 //ioException.printStackTrace();
             }
         }
