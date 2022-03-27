@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config>
     <params>
-        <R>5</R>
+        <R>2</R>
     </params>
     <peers>
         <peer>

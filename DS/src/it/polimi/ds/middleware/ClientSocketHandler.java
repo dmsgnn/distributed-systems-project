@@ -5,10 +5,7 @@ import it.polimi.ds.messages.Message;
 import it.polimi.ds.messages.ServerReply;
 import it.polimi.ds.model.Peer;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.Socket;
 
 import static java.lang.System.exit;
@@ -25,10 +22,14 @@ public class ClientSocketHandler extends SocketHandler {
     public void run() {
         try {
             while (true) {
-                Message message = (Message) in.readObject();
-                // print to test the received value
-                if(message instanceof ServerReply) {
-                    System.out.println(((ServerReply) message).getValue());
+                try {
+                    Message message = (Message) in.readObject();
+                    // print to test the received value
+                    if(message instanceof ServerReply) {
+                        System.out.println(((ServerReply) message).getValue());
+                    }
+                } catch(EOFException e) {
+                    System.out.println("Nothing to read...");
                 }
             }
         } catch(IOException | ClassNotFoundException e) {

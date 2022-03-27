@@ -1,6 +1,9 @@
 package it.polimi.ds.server;
 
 import it.polimi.ds.helpers.ConfigHelper;
+import it.polimi.ds.messages.HandshakeMessage;
+import it.polimi.ds.messages.Message;
+import it.polimi.ds.messages.WriteMessage;
 import it.polimi.ds.middleware.ServerSocketHandler;
 import it.polimi.ds.middleware.SocketHandler;
 import it.polimi.ds.model.Peer;
@@ -9,7 +12,10 @@ import it.polimi.ds.model.Tuple;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -21,7 +27,9 @@ public class Server {
     private List<Peer> peers;
 
     private ServerSocket socket;
-    private List<SocketHandler> connections;
+    private List<SocketHandler> connections = new ArrayList<>();
+    // Map containing ID, SocketHandler for each connection with the other servers.
+    private Map<Integer, SocketHandler> connectionsToServers = new HashMap<>();
 
     private final ExecutorService executor;
 
@@ -32,8 +40,8 @@ public class Server {
         try {
             ConfigHelper ch = new ConfigHelper(configPath);
             this.peers = ch.getPeerList();
+            this.R = ch.getParamR();
             for (Peer elem : peers) {
-                System.out.println(elem.getId());
                 if (elem.getId() == id) {
                     this.peerData = elem;
                     break;
@@ -63,7 +71,12 @@ public class Server {
     private void initializeConnections() {
         for (Peer peer : peers) {
             if(!peer.equals(peerData)) {
-                SocketHandler s = new ServerSocketHandler(peer);
+                SocketHandler s = new ServerSocketHandler(peer, this);
+                if (s.isConnected()) {
+                    connections.add(s);
+                    addConnectedServer(peer.getId(), s);
+                    s.send(new HandshakeMessage(this.peerData.getId()));
+                }
             }
         }
     }
@@ -77,7 +90,16 @@ public class Server {
     }
 
     public void setValue(Tuple t) {
-        store.put(t);
+        int first = t.getKey() % peers.size(); // first on which to write
+        int last = (first + R-1) % peers.size(); // last on which to write
+        System.out.println(first + "<=" + peerData.getId() + "<" + last);
+        boolean cond1 = first <= peerData.getId() && peerData.getId() <= last;
+        boolean cond2 = first <= peerData.getId() || peerData.getId() <= last;
+        if ((first < last && cond1) ||
+             first > last && cond2) {
+            store.put(t);
+            showStore();
+        }
     }
 
     public String getValue(int key) {
@@ -95,11 +117,42 @@ public class Server {
             }
             assert clientSocket != null;
             ServerSocketHandler connection = new ServerSocketHandler(clientSocket, this);
+            this.connections.add(connection);
             executor.submit(connection);
         }
     }
 
-    public Peer getPeerData() {
-        return this.peerData;
+    public void forward(Message message, SocketHandler sourceSocket) {
+        // if the message arrives from another server it has already been forwarded
+        if(!connectionsToServers.values().contains(sourceSocket)) {
+            WriteMessage m = (WriteMessage) message;
+            for (Peer p : m.getServers()) { // If there is a server with higher ID, it has to do the forwarding
+                if(p.getId() > peerData.getId()) {
+                    return;
+                }
+            }
+            // If I am the server with the highest ID
+            int key = m.getTuple().getKey();
+            for (int i = 0; i<R; i++) { // Compute list of recipients
+                int targetId = ((key % peers.size()) + i) % peers.size();
+                if(targetId != this.peerData.getId()) {
+                    connectionsToServers.get(targetId).send(message); // do the forwarding
+                }
+            }
+        }
+    }
+
+    public void addConnectedServer(int serverId, SocketHandler s) {
+        this.connectionsToServers.put(serverId, s);
+        System.out.println("[i] Connection established with server " + serverId);
+    }
+
+    public int getSocketId(SocketHandler sock) {
+        for (Map.Entry<Integer, SocketHandler> elem : connectionsToServers.entrySet()) {
+            if (elem.getValue() == sock) {
+                return elem.getKey();
+            }
+        }
+        return -1;
     }
 }

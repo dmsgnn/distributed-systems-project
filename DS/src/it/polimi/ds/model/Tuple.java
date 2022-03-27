@@ -24,4 +24,8 @@ public class Tuple implements java.io.Serializable{
     public void setValue(String value) {
         this.value = value;
     }
+
+    public String toString() {
+        return key + ": " + value;
+    }
 }

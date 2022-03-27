@@ -29,7 +29,7 @@ public abstract class SocketHandler implements Runnable {
             Socket sock = new Socket(host, port);
             this.socket = sock;
             out = new ObjectOutputStream(this.socket.getOutputStream());
-            in = new ObjectInputStream(/*new BufferedInputStream*/(this.socket.getInputStream()));
+            in = new ObjectInputStream(new BufferedInputStream(this.socket.getInputStream()));
             connected = true;
             new Thread(this).start();
         } catch (Exception e) {

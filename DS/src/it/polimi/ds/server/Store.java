@@ -33,7 +33,7 @@ public class Store {
         for(Map.Entry<Integer, Tuple> entry : store.entrySet()){
             int space = 10 - String.valueOf(entry.getKey()).length();
             String s = String.format("%"+space+"s", "");
-            res+=entry.getKey() + s + entry.getValue() +"\n";
+            res+=entry.getKey() + s + entry.getValue().getValue() +"\n";
         }
         return res;
     }

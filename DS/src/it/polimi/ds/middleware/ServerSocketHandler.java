@@ -12,8 +12,9 @@ public class ServerSocketHandler extends SocketHandler {
 
     private Server server;
 
-    public ServerSocketHandler(Peer s) {
-        super(s);
+    public ServerSocketHandler(Peer p, Server s) {
+        super(p);
+        this.server = s;
     }
 
     public ServerSocketHandler(Socket sock, Server s) {
@@ -26,8 +27,8 @@ public class ServerSocketHandler extends SocketHandler {
 // TODO: using strings for errors is not good, it would be better doing an error enumeration
         try {
             while(true) {
-                Message message = (Message) in.readObject(); // this is the client port
-                System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
+                Message message = (Message) in.readObject();
+                //System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
                 if (message instanceof ReadMessage) {
                     if(server.containsKey(((ReadMessage) message).getKey())) {
                         send(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + server.getValue(((ReadMessage) message).getKey())));
@@ -38,12 +39,12 @@ public class ServerSocketHandler extends SocketHandler {
                     }
                 }
                 else if (message instanceof WriteMessage) {
+                    System.out.println("[" + server.getSocketId(this) + "] W " + ((WriteMessage) message).getTuple());
                     server.setValue(((WriteMessage) message).getTuple());
-                    server.showStore();
-                    //server.forward(message);
+                    server.forward(message, this);
                 }
                 else if (message instanceof HandshakeMessage) {
-                    //server.addAcceptedServer(((HandshakeMessage) message).getServerId(), this);
+                    server.addConnectedServer(((HandshakeMessage) message).getServerId(), this);
                 }
                 else {
                     PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and it has been ignored");
@@ -51,8 +52,8 @@ public class ServerSocketHandler extends SocketHandler {
                 }
             }
         }catch (Exception e) {
-            //e.printStackTrace();
-            e.getMessage();
+            e.printStackTrace();
+            //e.getMessage();
             try {
                 socket.close();
                 in.close();
