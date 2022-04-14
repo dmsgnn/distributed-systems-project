@@ -13,10 +13,10 @@
 - TODO...
 
 ## Todo-list
-- [Dav] Modifica menu (due menu, uno per la selezione dei server e l'altro per le operazioni possibili in una transazione (read, write, etx...))
-- [Gio] Forwarding delle read se la tupla non è presente localmente
-- [Gio] Modificare write lato server per non forwardare
-- [Dav] BeginMessage
-- [Dav] CommitMessage
-- [Dav] AbortMessage
-- 2-phase commit
+- [x] [Dav] Modifica menu (due menu, uno per la selezione dei server e l'altro per le operazioni possibili in una transazione (read, write, etx...))
+- [ ] [Gio] Forwarding delle read se la tupla non è presente localmente
+- [ ] [Gio] Modificare write lato server per non forwardare
+- [ ] [Dav] BeginMessage
+- [ ] [Dav] CommitMessage
+- [ ] [Dav] AbortMessage
+- [ ] 2-phase commit

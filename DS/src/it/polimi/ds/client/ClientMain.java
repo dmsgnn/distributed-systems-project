@@ -79,11 +79,13 @@ public class ClientMain {
         switch (choice) {
             case 1 -> { // add connection
                 int peerId = menuSelectPeer(client.getAvailablePeers());
-                client.connect(peerId);
+                if (peerId != -1)
+                    client.connect(peerId);
             }
             case 2 -> { // detach connection
                 int peerId = menuSelectPeer(client.getPeersConnected());
-                client.detach(peerId);
+                if (peerId != -1)
+                    client.detach(peerId);
             }
             case 3 -> { // begin transaction
                 client.begin();
