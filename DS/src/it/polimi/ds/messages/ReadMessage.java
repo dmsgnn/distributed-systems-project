@@ -9,9 +9,8 @@ public class ReadMessage extends Message {
     private Integer key;
     private List<Peer> peers;
 
-    public ReadMessage(Integer key, Timestamp timestamp, List<Peer> peers) {
+    public ReadMessage(Integer key, List<Peer> peers) {
         this.peers = peers;
-        super.timestamp = timestamp;
         this.key = key;
     }
 

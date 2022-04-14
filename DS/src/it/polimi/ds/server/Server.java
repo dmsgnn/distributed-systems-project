@@ -135,7 +135,7 @@ public class Server {
             int key = m.getTuple().getKey();
             for (int i = 0; i<R; i++) { // Compute list of recipients
                 int targetId = ((key % peers.size()) + i) % peers.size();
-                if(targetId != this.peerData.getId()) {
+                if(targetId != this.peerData.getId()) { // TODO add check if recipient was already in the list of recipients
                     connectionsToServers.get(targetId).send(message); // do the forwarding
                 }
             }

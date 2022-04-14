@@ -27,7 +27,7 @@ public class ClientMain {
         } while (client.getConnectionsSize() != 1);
 
         while (true) {
-            menu(client);
+            menuConnections(client);
             if (client.getConnectionsSize() == 0) {
                 do {
                     System.out.println("Please connect to one of the peers below: ");
@@ -58,17 +58,13 @@ public class ClientMain {
         }
     }
 
-    private static void menu(Client client) {
+    private static void menuConnections(Client client) {
         System.out.println("Select one of the following operations:");
         String[] options = {
                 "Add connection",       //1
                 "Detach connection",    //2
                 "Begin transaction",    //3
-                "Write",                //4
-                "Read",                 //5
-                "Commit transaction",   //6
-                "Abort transaction",    //7
-                "Exit",                 //8
+                "Exit",                 //4
         };
         int i = 1;
         for (String s : options) {
@@ -81,12 +77,6 @@ public class ClientMain {
         sc.nextLine();
 
         switch (choice) {
-            /*
-                Yet to implement:
-                3. begin transaction
-                6. commit transaction
-                7. abort transaction
-             */
             case 1 -> { // add connection
                 int peerId = menuSelectPeer(client.getAvailablePeers());
                 client.connect(peerId);
@@ -95,16 +85,60 @@ public class ClientMain {
                 int peerId = menuSelectPeer(client.getPeersConnected());
                 client.detach(peerId);
             }
-            case 4 -> // write tuple
-                    menuWrite(client);
-            case 5 -> // read tuple
-                    menuRead(client);
-            case 8 -> { // exit
+            case 3 -> { // begin transaction
+                client.begin();
+                boolean isTerminated = false;
+                do {
+                    isTerminated = menuTransaction(client);
+                } while (!isTerminated);
+            }
+            case 4 -> { // exit
                 System.out.println("Cya!");
                 System.exit(0);
             }
-            default -> System.out.println("WORK IN PROGRESS... (the feature has yet to be implemented)");
+            default -> System.out.println("Invalid selection");
         }
+    }
+
+    /**
+     *
+     * @param client The instance of client that performs the transaction
+     * @return True if the transaction is terminated, False otherwise
+     */
+    private static boolean menuTransaction(Client client) {
+        System.out.println("Select one of the following operations:");
+        String[] options = {
+                "Write",                //1
+                "Read",                 //2
+                "Commit transaction",   //3
+                "Abort transaction",    //4
+        };
+        int i = 1;
+        for (String s : options) {
+            System.out.println(i+") " + s);
+            i++;
+        }
+
+        Scanner sc = new Scanner (System.in);
+        int choice = sc.nextInt();
+        sc.nextLine();
+
+        switch (choice) {
+            case 1 -> // write tuple
+                menuWrite(client);
+            case 2 -> // read tuple
+                menuRead(client);
+            case 3 -> { // commit
+                client.commit();
+                return true;
+            }
+            case 4 -> { // abort
+                client.abort();
+                return true;
+            }
+            default -> System.out.println("Invalid selection");
+        }
+        return false;
     }
 
     private static void menuWrite(Client client) {

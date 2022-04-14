@@ -123,7 +123,7 @@ public class ServerMain {
     // wip
     public void forward(Message message){
         WriteMessage r = (WriteMessage) message;
-        WriteMessage r1 = new WriteMessage(r.getTuple(), r.getTimestamp(), ch.getPeerList());
+        WriteMessage r1 = new WriteMessage(r.getTuple(), ch.getPeerList());
         for (SocketHandler sock : serverConnections) {
             if(! ((WriteMessage) message).getServers().contains(sock.getPeer())) {
                sock.send(r1);

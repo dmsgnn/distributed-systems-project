@@ -10,9 +10,8 @@ public class WriteMessage extends Message {
     private Tuple tuple;
     private List<Peer> peers;
 
-    public WriteMessage(Tuple tuple, Timestamp timestamp, List<Peer> peers) {
+    public WriteMessage(Tuple tuple, List<Peer> peers) {
         this.peers = peers;
-        super.timestamp = timestamp;
         this.tuple = tuple;
     }
 

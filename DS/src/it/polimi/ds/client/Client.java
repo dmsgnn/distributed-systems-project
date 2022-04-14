@@ -107,7 +107,7 @@ public class Client {
         // send the request to all peers connected containing the list of peers to
         // which the request is sent, for coordination reasons
         for (SocketHandler s : connections) {
-            s.send(new WriteMessage(new Tuple(key, value), ts, peersConnected));
+            s.send(new WriteMessage(new Tuple(key, value), peersConnected));
         }
     }
 
@@ -118,7 +118,39 @@ public class Client {
         // send the request to all peers connected containing the list of peers to
         // which the request is sent, for coordination reasons
         for (SocketHandler s : connections) {
-            s.send(new ReadMessage(key, ts, peersConnected));
+            s.send(new ReadMessage(key, peersConnected));
+        }
+    }
+
+    public void begin() {
+        // prepare the timestamp
+        Timestamp ts = Timestamp.from(Instant.now());
+
+        // send the request to all peers connected containing the list of peers to
+        // which the request is sent, for coordination reasons
+        for (SocketHandler s : connections) {
+            //s.send(new BeginMessage(ts, peersConnected)); TODO uncomment to send the begin message
+        }
+    }
+    public void commit() {
+        // prepare the timestamp
+        Timestamp ts = Timestamp.from(Instant.now());
+
+        // send the request to all peers connected containing the list of peers to
+        // which the request is sent, for coordination reasons
+        for (SocketHandler s : connections) {
+            //s.send(new CommitMessage(ts, peersConnected)); TODO uncomment to send the commit message
+        }
+    }
+
+    public void abort() {
+        // prepare the timestamp
+        Timestamp ts = Timestamp.from(Instant.now());
+
+        // send the request to all peers connected containing the list of peers to
+        // which the request is sent, for coordination reasons
+        for (SocketHandler s : connections) {
+            //s.send(new AbortMessage(peersConnected)); TODO uncomment to send the abort message
         }
     }
 }

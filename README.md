@@ -13,8 +13,10 @@
 - TODO...
 
 ## Todo-list
-### Giovanni
-- Capire come decidere per il forwarding in base a chi manda il messaggio (https://docs.oracle.com/javase/7/docs/api/java/net/Socket.html)
-
-### Davide
-- Gestire forwarding rispetto a parametro R nei peer (modulo della chiave, forwardando agli R-1 peer successivi)
+- [Dav] Modifica menu (due menu, uno per la selezione dei server e l'altro per le operazioni possibili in una transazione (read, write, etx...))
+- [Gio] Forwarding delle read se la tupla non è presente localmente
+- [Gio] Modificare write lato server per non forwardare
+- [Dav] BeginMessage
+- [Dav] CommitMessage
+- [Dav] AbortMessage
+- 2-phase commit
