@@ -131,11 +131,14 @@ public class Server {
                     return;
                 }
             }
+            // create the list of id who received the message
+            ArrayList<Integer> idList = new ArrayList<>();
+            m.getServers().stream().forEach((temp) -> idList.add(temp.getId()));
             // If I am the server with the highest ID
             int key = m.getTuple().getKey();
             for (int i = 0; i<R; i++) { // Compute list of recipients
                 int targetId = ((key % peers.size()) + i) % peers.size();
-                if(targetId != this.peerData.getId()) { // TODO add check if recipient was already in the list of recipients
+                if(targetId != this.peerData.getId() && !idList.contains(targetId)) {
                     connectionsToServers.get(targetId).send(message); // do the forwarding
                 }
             }
@@ -160,5 +163,17 @@ public class Server {
             }
         }
         return -1;
+    }
+
+    public Peer getPeerData() {
+        return peerData;
+    }
+
+    public List<Peer> getPeers() {
+        return peers;
+    }
+
+    public int getR() {
+        return R;
     }
 }
