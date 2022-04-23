@@ -2,8 +2,7 @@ package it.polimi.ds.client;
 
 import it.polimi.ds.helpers.ConfigHelper;
 import it.polimi.ds.helpers.PrintHelper;
-import it.polimi.ds.messages.ReadMessage;
-import it.polimi.ds.messages.WriteMessage;
+import it.polimi.ds.messages.*;
 import it.polimi.ds.middleware.ClientSocketHandler;
 import it.polimi.ds.middleware.SocketHandler;
 import it.polimi.ds.model.Peer;
@@ -129,7 +128,7 @@ public class Client {
         // send the request to all peers connected containing the list of peers to
         // which the request is sent, for coordination reasons
         for (SocketHandler s : connections) {
-            //s.send(new BeginMessage(ts, peersConnected)); TODO uncomment to send the begin message
+            s.send(new BeginMessage(ts, peersConnected));
         }
     }
     public void commit() {
@@ -139,18 +138,15 @@ public class Client {
         // send the request to all peers connected containing the list of peers to
         // which the request is sent, for coordination reasons
         for (SocketHandler s : connections) {
-            //s.send(new CommitMessage(ts, peersConnected)); TODO uncomment to send the commit message
+            s.send(new CommitMessage(ts, peersConnected));
         }
     }
 
     public void abort() {
-        // prepare the timestamp
-        Timestamp ts = Timestamp.from(Instant.now());
-
         // send the request to all peers connected containing the list of peers to
         // which the request is sent, for coordination reasons
         for (SocketHandler s : connections) {
-            //s.send(new AbortMessage(peersConnected)); TODO uncomment to send the abort message
+            s.send(new AbortMessage(peersConnected));
         }
     }
 }

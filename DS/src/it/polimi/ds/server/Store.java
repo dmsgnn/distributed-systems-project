@@ -2,14 +2,15 @@ package it.polimi.ds.server;
 
 import it.polimi.ds.model.Tuple;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
 import static java.lang.System.out;
 
-public class Store {
+public class Store implements Serializable {
     // Map<Integer, Tuple> containing the data, the key is the key of the tuple for query speedup
-    private Map<Integer, Tuple> store;
+    protected Map<Integer, Tuple> store;
 
     public Store() {
          store = new HashMap<>();
@@ -37,5 +38,4 @@ public class Store {
         }
         return res;
     }
-
 }
