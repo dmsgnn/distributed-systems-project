@@ -8,7 +8,6 @@ import it.polimi.ds.server.Server;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 
 public class ServerSocketHandler extends SocketHandler {
@@ -26,20 +25,30 @@ public class ServerSocketHandler extends SocketHandler {
     }
 
     /**
-     * @param message
-     * @return true if `this.server` is the one with the highest ID in the ones owning the key.
+     * @param idList is the list of the receivers of the read message
+     * @param key is the requested key
+     * @return the list of the receiver of the read message who could have the requested key
      */
-    private boolean shouldSendReadReply(Message message){
-        // making the idList
-        ReadMessage m = (ReadMessage) message;
-        ArrayList<Integer> idList = new ArrayList<>();
-        m.getServers().stream().forEach((temp) -> idList.add(temp.getId())); // gets the list of server ids from the message, TODO can we make a method in message for this?
-        int key = m.getKey();
+    public ArrayList<Integer> getPossibleKeyOwners (ArrayList<Integer> idList, int key){
+        ArrayList<Integer> shouldHaveTheKey = new ArrayList<>();
         for (int i = 0; i<server.getR(); i++) {
             int targetId = ((key % server.getPeers().size()) + i) % server.getPeers().size();
-            idList.remove(targetId);
+            if(idList.contains(targetId)) {
+                shouldHaveTheKey.add(targetId);
+            }
         }
-        return server.getPeerData().getId() == Collections.max(idList);
+        return shouldHaveTheKey;
+    }
+    /**
+     * @param idList is the list of the receivers of the read message
+     * @param key is the requested key
+     * @return true if between the receivers of the read message there is at least one server which could have the key, false otherwise
+     */
+    private boolean someoneShouldHaveTheKey(ArrayList<Integer> idList, int key) {
+        if(getPossibleKeyOwners(idList, key).size() == 0)
+            return false;
+        else
+            return true;
     }
 
     @Override
@@ -50,19 +59,30 @@ public class ServerSocketHandler extends SocketHandler {
                 Message message = (Message) in.readObject();
                 //System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
                 if (message instanceof ReadMessage) {
-                    if(server.containsKey(((ReadMessage) message).getKey())) { // if I contain the key
-                        if (shouldSendReadReply(message)) { // if I am supposed to send the reply
-                            send(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + server.getValue(((ReadMessage) message).getKey())));
+                    if(someoneShouldHaveTheKey(((ReadMessage) message).getIDs(), ((ReadMessage) message).getKey())){ // in this case forwarding is not required
+                        // if I am the biggest one of servers which could have the key between the receivers I manage the request
+                        if (server.getPeerData().getId() == Collections.max(getPossibleKeyOwners(((ReadMessage) message).getIDs(), ((ReadMessage) message).getKey()))){
+                            // the key exists and reply is sent
+                            if(server.containsKey(((ReadMessage) message).getKey())){
+                                send(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + server.getValue(((ReadMessage) message).getKey())));
+                            }
+                            // the key simply does not exists
+                            else {
+                                PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] Key " + ((ReadMessage) message).getKey() +" does not exists!");
+                                // TODO create an error message
+                            }
                         }
-                        else { // if somebody else is supposed to answer
-                            PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] Key " + ((ReadMessage) message).getKey() +" exists but it is not my job to answer!");
+                        // I am not the biggest one and i have to do nothing
+                        else {
+                            PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] It is not my job to manage the read message with key " + ((ReadMessage) message).getKey() + "!");
                         }
                     }
-                    else {
-                        // TODO : in this case (if I am the server with the highest ID between the receivers - it is already verified that no one have the key)
-                        //  the key must be requested from another server, R % peers.size, and used to reply
-                        PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] Key " + ((ReadMessage) message).getKey() +" does not exists!");
-                        //sendReply(new ServerReply("\u001B[31m" + "["+this.socket.getInetAddress().getHostAddress()+ "] Key " + ((ReadRequest) request).getKey() +" does not exists!" + "\u001B[0m"));
+                    // no one could have the key, forwarding needed
+                    else{
+                        if(server.getPeerData().getId() == Collections.max(((ReadMessage) message).getIDs())){
+                            //TODO read forward
+                            //server.getConnectionsToServers().get(((ReadMessage) message).getKey() % server.getPeers().size()).send(message);
+                        }
                     }
                 }
                 else if (message instanceof WriteMessage) {

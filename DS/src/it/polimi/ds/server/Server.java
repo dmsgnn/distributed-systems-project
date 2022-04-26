@@ -180,6 +180,10 @@ public class Server {
         return R;
     }
 
+    public Map<Integer, SocketHandler> getConnectionsToServers() {
+        return connectionsToServers;
+    }
+
     /**
      * Creates a new private workspace linked to the connection passed as argument.
      * @param socketHandler The connection for which the private workspace has to be created.
