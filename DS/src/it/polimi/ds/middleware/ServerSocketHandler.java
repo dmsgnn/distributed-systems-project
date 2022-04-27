@@ -4,6 +4,7 @@ import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.messages.*;
 import it.polimi.ds.model.Peer;
 import it.polimi.ds.server.Server;
+import it.polimi.ds.server.Store;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -13,6 +14,7 @@ import java.util.Collections;
 public class ServerSocketHandler extends SocketHandler {
 
     private Server server;
+    private Store privateWorkspace;
 
     public ServerSocketHandler(Peer p, Server s) {
         super(p);
@@ -59,7 +61,13 @@ public class ServerSocketHandler extends SocketHandler {
                 Message message = (Message) in.readObject();
                 //System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
                 if (message instanceof ReadMessage) {
-                    if(someoneShouldHaveTheKey(((ReadMessage) message).getIDs(), ((ReadMessage) message).getKey())){ // in this case forwarding is not required
+                    // if the key is in the private workspace
+                    if(privateWorkspace.contains(((ReadMessage) message).getKey())){
+                        if(server.getPeerData().getId() == Collections.max(((ReadMessage) message).getIDs())){
+                            send(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + privateWorkspace.getTuple(((ReadMessage) message).getKey()).getValue()));
+                        }
+                    }
+                    else if(someoneShouldHaveTheKey(((ReadMessage) message).getIDs(), ((ReadMessage) message).getKey())){ // in this case forwarding is not required
                         // if I am the biggest one of servers which could have the key between the receivers I manage the request
                         if (server.getPeerData().getId() == Collections.max(getPossibleKeyOwners(((ReadMessage) message).getIDs(), ((ReadMessage) message).getKey()))){
                             // the key exists and reply is sent
