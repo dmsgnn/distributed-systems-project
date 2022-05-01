@@ -15,6 +15,9 @@
 ## Todo-list
 - [x] [Dav] Modifica menu (due menu, uno per la selezione dei server e l'altro per le operazioni possibili in una transazione (read, write, etx...))
 - [ ] [Gio] Forwarding delle read se la tupla non è presente localmente
+  - [ ] Aggiungere timestamp di creazione del socket all'interno di SocketHandler
+  - [ ] Creare un'estensione di ReadMessage aggiungendo il timestamp che identifica il socket
+  - [ ] Creare un messaggio di risposta al forwarding
 - [x] [Gio] Modificare write lato server per non forwardare
 - [x] [Dav] BeginMessage
 - [x] [Dav] CommitMessage

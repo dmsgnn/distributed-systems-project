@@ -3,6 +3,7 @@ package it.polimi.ds.middleware;
 import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.messages.*;
 import it.polimi.ds.model.Peer;
+import it.polimi.ds.model.Tuple;
 import it.polimi.ds.server.Server;
 import it.polimi.ds.server.Store;
 
@@ -61,37 +62,7 @@ public class ServerSocketHandler extends SocketHandler {
                 Message message = (Message) in.readObject();
                 //System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
                 if (message instanceof ReadMessage) {
-                    // if the key is in the private workspace
-                    if(privateWorkspace.contains(((ReadMessage) message).getKey())){
-                        if(server.getPeerData().getId() == Collections.max(((ReadMessage) message).getIDs())){
-                            send(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + privateWorkspace.getTuple(((ReadMessage) message).getKey()).getValue()));
-                        }
-                    }
-                    else if(someoneShouldHaveTheKey(((ReadMessage) message).getIDs(), ((ReadMessage) message).getKey())){ // in this case forwarding is not required
-                        // if I am the biggest one of servers which could have the key between the receivers I manage the request
-                        if (server.getPeerData().getId() == Collections.max(getPossibleKeyOwners(((ReadMessage) message).getIDs(), ((ReadMessage) message).getKey()))){
-                            // the key exists and reply is sent
-                            if(server.containsKey(((ReadMessage) message).getKey())){
-                                send(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + server.getValue(((ReadMessage) message).getKey())));
-                            }
-                            // the key simply does not exists
-                            else {
-                                PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] Key " + ((ReadMessage) message).getKey() +" does not exists!");
-                                // TODO create an error message
-                            }
-                        }
-                        // I am not the biggest one and i have to do nothing
-                        else {
-                            PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] It is not my job to manage the read message with key " + ((ReadMessage) message).getKey() + "!");
-                        }
-                    }
-                    // no one could have the key, forwarding needed
-                    else{
-                        if(server.getPeerData().getId() == Collections.max(((ReadMessage) message).getIDs())){
-                            //TODO read forward
-                            //server.getConnectionsToServers().get(((ReadMessage) message).getKey() % server.getPeers().size()).send(message);
-                        }
-                    }
+                    this.doRead((ReadMessage) message);
                 }
                 else if (message instanceof WriteMessage) {
                     System.out.println("[" + server.getSocketId(this) + "] W " + ((WriteMessage) message).getTuple());
@@ -129,6 +100,62 @@ public class ServerSocketHandler extends SocketHandler {
                 PrintHelper.printError("Unexpected error while closing the connection.");
                 //ioException.printStackTrace();
             }
+        }
+    }
+
+    public void doRead(ReadMessage message) {
+        int key = ((ReadMessage) message).getKey();
+        Tuple res = null;
+        ///////////////////////////////
+        // Manage the local workspace
+        ///////////////////////////////
+        // if the key is in the private workspace
+        if(privateWorkspace.contains(key)){
+            res = new Tuple(key, privateWorkspace.getTuple(key).getValue());
+            if(server.getPeerData().getId() == Collections.max(((ReadMessage) message).getIDs())) {
+                send(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + privateWorkspace.getTuple(key).getValue()));
+            }
+        }
+        // if the key is not in the private workspace but is stored locally
+        else if(server.containsKey(key)) {
+            res = new Tuple(key, server.getValue(key));
+        }
+        // server does not own the key, require it from others
+        else{
+            if(server.getPeerData().getId() == Collections.max(((ReadMessage) message).getIDs())){
+                // TODO read forward
+                //server.getConnectionsToServers().get(key % server.getPeers().size()).send(message);
+            }
+        }
+        ///////////////////////////////
+        // Send the reply
+        ///////////////////////////////
+        if(someoneShouldHaveTheKey(((ReadMessage) message).getIDs(), key)){ // in this case forwarding is not required
+            // if I am the biggest one of servers which could have the key between the receivers I manage the request
+            if (server.getPeerData().getId() == Collections.max(getPossibleKeyOwners(((ReadMessage) message).getIDs(), key))) {
+                // the key exists and reply is sent
+                if(server.containsKey(key)){
+                    String value = server.getValue(key);
+                    Tuple t = new Tuple(key, value);
+                    send(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + t.getValue()));
+                    this.privateWorkspace.put(t);
+                }
+                // the key does not exists
+                else {
+                    PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] Key " + key +" does not exists!");
+                    // TODO create an error messagI
+                }
+            }
+            // I am not the biggest one => do nothing
+            else {
+                PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] It is not my job to manage the read message with key " + key + "!");
+            }
+        }
+        ///////////////////////////////
+        // Store the tuple
+        ///////////////////////////////
+        if (res != null) {
+            privateWorkspace.put(res);
         }
     }
 }

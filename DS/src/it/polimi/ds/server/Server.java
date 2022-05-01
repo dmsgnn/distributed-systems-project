@@ -202,6 +202,7 @@ public class Server {
         if(!connectionsToServers.containsValue(socketHandler)) { // The message arrived from a client
             w = workspaces.get(socketHandler);
             w.setCommitTimestamp(m.getTimestamp());
+            // TODO check if I should forward or there's someone else with higher ID
             if(isWorkspaceValid(w)) { // if the workspace is valid
                 // forward the commit
                 m.setWorkspace(w);
@@ -221,7 +222,7 @@ public class Server {
 
     private boolean isWorkspaceValid(Workspace w) {
         for (Integer id : w.getSavedIDs()) { // for each id stored in the workspace
-            // if the saved timestamp is higher than the one at which the transaction began
+            // if the saved timestamp is higher than the one at which the transaction began then data has been changed under the hood
             if (store.getTuple(id).getTimestamp().compareTo(w.getBeginTimestamp()) > 0) {
                 return false;
             }
