@@ -1,21 +1,23 @@
 package it.polimi.ds.middleware;
 
+import it.polimi.ds.enums.ErrorCode;
 import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.messages.*;
 import it.polimi.ds.model.Peer;
 import it.polimi.ds.model.Tuple;
 import it.polimi.ds.server.Server;
-import it.polimi.ds.server.Store;
+import it.polimi.ds.server.Workspace;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 
 public class ServerSocketHandler extends SocketHandler {
 
     private Server server;
-    private Store privateWorkspace;
+    private Workspace privateWorkspace;
 
     public ServerSocketHandler(Peer p, Server s) {
         super(p);
@@ -42,6 +44,7 @@ public class ServerSocketHandler extends SocketHandler {
         }
         return shouldHaveTheKey;
     }
+
     /**
      * @param idList is the list of the receivers of the read message
      * @param key is the requested key
@@ -66,29 +69,31 @@ public class ServerSocketHandler extends SocketHandler {
                 }
                 else if (message instanceof WriteMessage) {
                     System.out.println("[" + server.getSocketId(this) + "] W " + ((WriteMessage) message).getTuple());
-                    server.addToPrivateWorkspace(this, ((WriteMessage) message).getTuple());
-                    //server.setValue(((WriteMessage) message).getTuple());
-                    //server.forward(message, this);
+                    this.privateWorkspace.put(((WriteMessage) message).getTuple());
                 }
                 else if (message instanceof HandshakeMessage) {
                     server.addConnectedServer(((HandshakeMessage) message).getServerId(), this);
                 }
                 else if (message instanceof BeginMessage) {
-                    server.beginTransaction(this, ((BeginMessage) message).getTimestamp());
+                    this.privateWorkspace = new Workspace(((BeginMessage) message).getTimestamp());
+                    //server.beginTransaction(this, ((BeginMessage) message).getTimestamp());
                 }
                 else if (message instanceof AbortMessage) {
-                    server.abortTransaction(this);
+                    this.privateWorkspace = null;
                 }
                 else if (message instanceof CommitMessage) {
-                    server.commitTransaction(this, (CommitMessage) message);
+                    server.commitTransaction(this.privateWorkspace, (CommitMessage) message); // TODO fix
+                }
+                else if (message instanceof ForwardedMessage) {
+                    handleForwardedMessage((ForwardedMessage) message);
                 }
                 else {
-                    PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and it has been ignored");
-                    //System.out.println("\u001B[31m" + "["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and it has been ignored" + "\u001B[0m");
+                    PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and has been ignored");
+                    //System.out.println("\u001B[31m" + "["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and has been ignored" + "\u001B[0m");
                 }
             }
         } catch (Exception e) {
-            //e.printStackTrace();
+            e.printStackTrace();
             //e.getMessage();
             try {
                 System.out.println("Closing connection with " + socket.getInetAddress().getHostAddress() + ":" + socket.getPort() + "...");
@@ -104,8 +109,8 @@ public class ServerSocketHandler extends SocketHandler {
     }
 
     public void doRead(ReadMessage message) {
-        int key = ((ReadMessage) message).getKey();
-        Tuple res = null;
+        int key = (message).getKey();
+        Tuple res;
         ///////////////////////////////
         // Manage the local workspace
         ///////////////////////////////
@@ -113,49 +118,82 @@ public class ServerSocketHandler extends SocketHandler {
         if(privateWorkspace.contains(key)){
             res = new Tuple(key, privateWorkspace.getTuple(key).getValue());
             if(server.getPeerData().getId() == Collections.max(((ReadMessage) message).getIDs())) {
-                send(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + privateWorkspace.getTuple(key).getValue()));
+                send(new ReplyMessage("[" + this.socket.getInetAddress().getHostAddress() + "] " + privateWorkspace.getTuple(key).getValue()));
             }
         }
         // if the key is not in the private workspace but is stored locally
         else if(server.containsKey(key)) {
             res = new Tuple(key, server.getValue(key));
         }
-        // server does not own the key, require it from others
+        // server does not own the key
         else{
-            if(server.getPeerData().getId() == Collections.max(((ReadMessage) message).getIDs())){
-                // TODO read forward
-                //server.getConnectionsToServers().get(key % server.getPeers().size()).send(message);
-            }
+            // if the server does not own the key it does not mean that it does not exist,
+            // the check is performed while sending the reply
+            res = new Tuple(key, null);
         }
         ///////////////////////////////
         // Send the reply
         ///////////////////////////////
-        if(someoneShouldHaveTheKey(((ReadMessage) message).getIDs(), key)){ // in this case forwarding is not required
+        if(someoneShouldHaveTheKey(message.getIDs(), key)){ // in this case forwarding is not required
+            System.out.println("[info] Someone should have the key...");
             // if I am the biggest one of servers which could have the key between the receivers I manage the request
-            if (server.getPeerData().getId() == Collections.max(getPossibleKeyOwners(((ReadMessage) message).getIDs(), key))) {
+            if (server.getPeerData().getId() == Collections.max(getPossibleKeyOwners((message).getIDs(), key))) {
+                System.out.println("[info] I should have the key " + key + " and I should reply.");
                 // the key exists and reply is sent
-                if(server.containsKey(key)){
-                    String value = server.getValue(key);
-                    Tuple t = new Tuple(key, value);
-                    send(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + t.getValue()));
-                    this.privateWorkspace.put(t);
+                if(res.getValue() != null){
+                    System.out.println("[info] I have the tuple with key " + key + "!");
+                    send(new ReplyMessage("[" + this.socket.getInetAddress().getHostAddress() + "] " + res.getValue()));
                 }
-                // the key does not exists
+                // the key does not exist
                 else {
                     PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] Key " + key +" does not exists!");
-                    // TODO create an error messagI
+                    send(new ErrorMessage(ErrorCode.INVALID_KEY, key));
                 }
             }
-            // I am not the biggest one => do nothing
+            // I am not the biggest one: do nothing
             else {
                 PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] It is not my job to manage the read message with key " + key + "!");
+            }
+        }
+        // Forwarding!
+        else {
+            // if I am the biggest one I perform the forwarding
+            if (server.getPeerData().getId() == Collections.max((message).getIDs())) {
+                server.forwardRead(new ForwardedMessage(message, this.creationTime));
             }
         }
         ///////////////////////////////
         // Store the tuple
         ///////////////////////////////
-        if (res != null) {
-            privateWorkspace.put(res);
+        privateWorkspace.put(res);
+    }
+
+    public void handleForwardedMessage(ForwardedMessage message) {
+        System.out.println("Handling a forwarded read!");
+        Message innerMessage = message.getMessage();
+        Message reply;
+        if (innerMessage instanceof ReadMessage) { // If the inner message is a read request I have to retrieve the tuple from storage
+            int key = ((ReadMessage) innerMessage).getKey();
+            if (server.containsKey(key)) {
+                reply = new ForwardedMessage(new ReplyMessage(new Tuple(key, server.getValue(key))), message.getSourceSocketId());
+            }
+            else {
+                System.out.println("[i] Tuple not found (key: " + key + ")");
+                reply = new ForwardedMessage(new ErrorMessage(ErrorCode.INVALID_KEY, key), message.getSourceSocketId());
+            }
+            send(reply);
+        }
+        else { // in all other cases I forward the inner message to the socket corresponding to sourceSocketId
+            Timestamp sourceSocketId = message.getSourceSocketId();
+            SocketHandler source = server.getSourceSocket(sourceSocketId);
+            if (source != null) {
+                reply = innerMessage;
+                source.send(reply);
+            }
+            else {
+                reply = new ForwardedMessage(new ErrorMessage(ErrorCode.UNKNOWN, null), sourceSocketId);
+                source.send(reply);
+            }
         }
     }
 }

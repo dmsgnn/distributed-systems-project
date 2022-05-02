@@ -1,12 +1,12 @@
 package it.polimi.ds.middleware;
 
 import it.polimi.ds.helpers.PrintHelper;
+import it.polimi.ds.messages.ErrorMessage;
 import it.polimi.ds.messages.Message;
-import it.polimi.ds.messages.ServerReply;
+import it.polimi.ds.messages.ReplyMessage;
 import it.polimi.ds.model.Peer;
 
 import java.io.*;
-import java.net.Socket;
 import java.net.SocketException;
 
 import static java.lang.System.exit;
@@ -26,8 +26,11 @@ public class ClientSocketHandler extends SocketHandler {
                 try {
                     Message message = (Message) in.readObject();
                     // print to test the received value
-                    if(message instanceof ServerReply) {
-                        System.out.println(((ServerReply) message).getValue());
+                    if(message instanceof ReplyMessage) {
+                        System.out.println(((ReplyMessage) message).getValue());
+                    }
+                    if(message instanceof ErrorMessage) {
+                        PrintHelper.printError((ErrorMessage) message, this.getPeer().getHost());
                     }
                 } catch (EOFException e) {
                     System.out.println("Nothing to read...");

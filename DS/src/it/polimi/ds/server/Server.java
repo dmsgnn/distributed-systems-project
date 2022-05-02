@@ -1,10 +1,7 @@
 package it.polimi.ds.server;
 
 import it.polimi.ds.helpers.ConfigHelper;
-import it.polimi.ds.messages.CommitMessage;
-import it.polimi.ds.messages.HandshakeMessage;
-import it.polimi.ds.messages.Message;
-import it.polimi.ds.messages.WriteMessage;
+import it.polimi.ds.messages.*;
 import it.polimi.ds.middleware.ServerSocketHandler;
 import it.polimi.ds.middleware.SocketHandler;
 import it.polimi.ds.model.Peer;
@@ -148,6 +145,11 @@ public class Server {
         }
     }
 
+    public void forwardRead(ForwardedMessage message) {
+        int key = ((ReadMessage) message.getMessage()).getKey();
+        connectionsToServers.get(key % peers.size()).send(message);
+    }
+
     public void addConnectedServer(int serverId, SocketHandler s) {
         this.connectionsToServers.put(serverId, s);
         System.out.println("[i] Connection established with server " + serverId);
@@ -184,20 +186,9 @@ public class Server {
         return connectionsToServers;
     }
 
-    /**
-     * Creates a new private workspace linked to the connection passed as argument.
-     * @param socketHandler The connection for which the private workspace has to be created.
-     * @param ts The timestamp at which the client created the transaction,
-     */
-    public void beginTransaction(SocketHandler socketHandler, Timestamp ts) {
-        this.workspaces.put(socketHandler, new Workspace(ts));
-    }
-
-    public void abortTransaction(SocketHandler socketHandler) {
-        this.workspaces.remove(socketHandler);
-    }
-
-    public void commitTransaction(SocketHandler socketHandler, CommitMessage m) {
+    public void commitTransaction(Workspace w, CommitMessage m) {
+        // TODO fix
+        /*
         Workspace w;
         if(!connectionsToServers.containsValue(socketHandler)) { // The message arrived from a client
             w = workspaces.get(socketHandler);
@@ -217,27 +208,25 @@ public class Server {
             if(isWorkspaceValid(w)) {
                 // TODO Forward the ack
             }
-        }
+        }*/
     }
 
-    private boolean isWorkspaceValid(Workspace w) {
+    public boolean isWorkspaceValid(Workspace w) {
         for (Integer id : w.getSavedIDs()) { // for each id stored in the workspace
             // if the saved timestamp is higher than the one at which the transaction began then data has been changed under the hood
-            if (store.getTuple(id).getTimestamp().compareTo(w.getBeginTimestamp()) > 0) {
+            if (store.contains(id) && store.getTuple(id).getTimestamp().compareTo(w.getBeginTimestamp()) > 0) {
                 return false;
             }
         }
         return true;
     }
 
-    /**
-     * Adds a tuple to one of the local workspaces.
-     * @param socketHandler The connection that owns the local workspace
-     * @param tuple The tuple to add to the local workspace
-     */
-    public void addToPrivateWorkspace(SocketHandler socketHandler, Tuple tuple) {
-        this.workspaces.get(socketHandler).put(tuple);
-        //System.out.println(this.workspaces.get(socketHandler).toString()); // uncomment for debugging private workspace upon write
+    public SocketHandler getSourceSocket(Timestamp sourceSocketId) {
+        for (SocketHandler s : connections) {
+            if (s.getCreationTime().equals(sourceSocketId)) {
+                return s;
+            }
+        }
+        return null;
     }
-
 }

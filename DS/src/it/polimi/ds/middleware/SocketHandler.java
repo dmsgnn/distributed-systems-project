@@ -2,19 +2,17 @@ package it.polimi.ds.middleware;
 
 import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.messages.Message;
-import it.polimi.ds.messages.ServerReply;
-import it.polimi.ds.messages.WriteMessage;
 import it.polimi.ds.model.Peer;
-import it.polimi.ds.server.ServerMain;
 
 import java.net.Socket;
 import java.io.*;
-
-import static java.lang.System.exit;
+import java.sql.Timestamp;
+import java.time.Instant;
 
 public abstract class SocketHandler implements Runnable {
     private boolean connected = false;
     private Peer peer;
+    protected Timestamp creationTime; // used to identify the socket
 
     //socket attributes
     protected Socket socket;
@@ -22,6 +20,7 @@ public abstract class SocketHandler implements Runnable {
     protected ObjectOutputStream out;
 
     public SocketHandler(Peer s) {
+        this.creationTime = Timestamp.from(Instant.now());
         String host = s.getHost();
         int port = s.getPort();
         try { // socket creation
@@ -38,6 +37,7 @@ public abstract class SocketHandler implements Runnable {
     }
 
     public SocketHandler(Socket s) {
+        this.creationTime = Timestamp.from(Instant.now());
         try {
             this.socket = s;
             out = new ObjectOutputStream(this.socket.getOutputStream());
@@ -71,6 +71,10 @@ public abstract class SocketHandler implements Runnable {
 
     public boolean isConnected() {
         return this.connected;
+    }
+
+    public Timestamp getCreationTime() {
+        return this.creationTime;
     }
 
     @Override

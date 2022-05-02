@@ -11,7 +11,7 @@ import it.polimi.ds.messages.*;
 
 /**
  * Helps to manage each client connection, pairing it with the server. It holds the input stream to
- * receive {@link Message} and holds an output stream to send the {@link ServerReply}
+ * receive {@link Message} and holds an output stream to send the {@link ReplyMessage}
  */
 public class ServerSocketHandlerOLD implements Runnable{
     private static final Object lock = new Object();
@@ -51,7 +51,7 @@ public class ServerSocketHandlerOLD implements Runnable{
                 System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
                 if (message instanceof ReadMessage) {
                     if(server.isContained(((ReadMessage) message).getKey())) {
-                        sendReply(new ServerReply("[" + this.socket.getInetAddress().getHostAddress() + "] " + server.getValue(((ReadMessage) message).getKey())));
+                        sendReply(new ReplyMessage("[" + this.socket.getInetAddress().getHostAddress() + "] " + server.getValue(((ReadMessage) message).getKey())));
                     }
                     else{
                         PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] Key " + ((ReadMessage) message).getKey() +" does not exists!");
