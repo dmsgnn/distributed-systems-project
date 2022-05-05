@@ -30,5 +30,5 @@
   - [ ] notificare il client se la transazione è invalidata
   
 ## Note
-[x] Nel read è necessario vedere se il client sta già lavorando su un workspace locale ed eventualmente restituire il valore del workspace
-[x] Nel read è necessario salvare il valore letto nel private workspace per garantire la consistency sulle read
+- [x] Nel read è necessario vedere se il client sta già lavorando su un workspace locale ed eventualmente restituire il valore del workspace
+- [x] Nel read è necessario salvare il valore letto nel private workspace per garantire la consistency sulle read
