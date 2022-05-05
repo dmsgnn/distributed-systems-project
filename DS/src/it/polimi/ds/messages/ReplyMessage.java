@@ -15,4 +15,8 @@ public class ReplyMessage extends Message {
     public String getValue() {
         return this.tuple.getValue();
     }
+
+    public Tuple getTuple() {
+        return this.tuple;
+    }
 }

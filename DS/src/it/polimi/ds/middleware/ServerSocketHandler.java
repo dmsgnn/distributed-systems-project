@@ -117,9 +117,13 @@ public class ServerSocketHandler extends SocketHandler {
         // if the key is in the private workspace
         if(privateWorkspace.contains(key)){
             res = new Tuple(key, privateWorkspace.getTuple(key).getValue());
-            if(server.getPeerData().getId() == Collections.max(((ReadMessage) message).getIDs())) {
-                send(new ReplyMessage("[" + this.socket.getInetAddress().getHostAddress() + "] " + privateWorkspace.getTuple(key).getValue()));
+            /*
+            if(server.getPeerData().getId() == Collections.max(message.getIDs())) {
+                //send(new ReplyMessage("[" + this.socket.getInetAddress().getHostAddress() + "] " + privateWorkspace.getTuple(key).getValue()));
+                // send the tuple as reply, the client manages the printing
+                send(new ReplyMessage(res));
             }
+            */
         }
         // if the key is not in the private workspace but is stored locally
         else if(server.containsKey(key)) {
@@ -142,7 +146,8 @@ public class ServerSocketHandler extends SocketHandler {
                 // the key exists and reply is sent
                 if(res.getValue() != null){
                     System.out.println("[info] I have the tuple with key " + key + "!");
-                    send(new ReplyMessage("[" + this.socket.getInetAddress().getHostAddress() + "] " + res.getValue()));
+                    //send(new ReplyMessage("[" + this.socket.getInetAddress().getHostAddress() + "] " + res.getValue()));
+                    send(new ReplyMessage(res));
                 }
                 // the key does not exist
                 else {
@@ -189,11 +194,21 @@ public class ServerSocketHandler extends SocketHandler {
             if (source != null) {
                 reply = innerMessage;
                 source.send(reply);
+                // if the innerMessage is a ReplyMessage, the server has to store the tuple in the local
+                // workspace of the source socket.
+                if (innerMessage instanceof ReplyMessage) {
+                    assert source instanceof ServerSocketHandler;
+                    ((ServerSocketHandler) source).storeForwardedReply((ReplyMessage) innerMessage);
+                }
             }
             else {
                 reply = new ForwardedMessage(new ErrorMessage(ErrorCode.UNKNOWN, null), sourceSocketId);
                 source.send(reply);
             }
         }
+    }
+
+    public void storeForwardedReply(ReplyMessage message) {
+        privateWorkspace.put(message.getTuple());
     }
 }

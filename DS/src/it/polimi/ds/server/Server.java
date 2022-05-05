@@ -28,9 +28,9 @@ public class Server {
     private ServerSocket socket;
     private List<SocketHandler> connections = new ArrayList<>();
     // Map containing ID, SocketHandler for each connection with the other servers.
-    private Map<Integer, SocketHandler> connectionsToServers = new HashMap<>();
+    private Map<Integer, ServerSocketHandler> connectionsToServers = new HashMap<>();
 
-    private Map<SocketHandler, Workspace> workspaces = new HashMap<>();
+    private Map<ServerSocketHandler, Workspace> workspaces = new HashMap<>();
     private final ExecutorService executor;
 
     private Store store;
@@ -71,7 +71,7 @@ public class Server {
     private void initializeConnections() {
         for (Peer peer : peers) {
             if(!peer.equals(peerData)) {
-                SocketHandler s = new ServerSocketHandler(peer, this);
+                ServerSocketHandler s = new ServerSocketHandler(peer, this);
                 if (s.isConnected()) {
                     connections.add(s);
                     addConnectedServer(peer.getId(), s);
@@ -150,7 +150,7 @@ public class Server {
         connectionsToServers.get(key % peers.size()).send(message);
     }
 
-    public void addConnectedServer(int serverId, SocketHandler s) {
+    public void addConnectedServer(int serverId, ServerSocketHandler s) {
         this.connectionsToServers.put(serverId, s);
         System.out.println("[i] Connection established with server " + serverId);
     }
@@ -162,7 +162,7 @@ public class Server {
      * Returns -1 if the socket does not model a connection to a server (i.e. the connection is to a client).
      */
     public int getSocketId(SocketHandler sock) {
-        for (Map.Entry<Integer, SocketHandler> elem : connectionsToServers.entrySet()) {
+        for (Map.Entry<Integer, ServerSocketHandler> elem : connectionsToServers.entrySet()) {
             if (elem.getValue() == sock) {
                 return elem.getKey();
             }
@@ -182,7 +182,7 @@ public class Server {
         return R;
     }
 
-    public Map<Integer, SocketHandler> getConnectionsToServers() {
+    public Map<Integer, ServerSocketHandler> getConnectionsToServers() {
         return connectionsToServers;
     }
 

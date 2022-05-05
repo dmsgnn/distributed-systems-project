@@ -26,6 +26,7 @@ public class Store implements Serializable {
 
     public void put(Tuple t) {
         store.put(t.getKey(), t);
+        // out.println(this); // uncomment to see store status
     }
 
     public String toString() {
