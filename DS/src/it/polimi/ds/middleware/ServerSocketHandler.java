@@ -113,59 +113,60 @@ public class ServerSocketHandler extends SocketHandler {
         int key = (message).getKey();
         Tuple res;
         ///////////////////////////////
-        // Manage the local workspace
+        // Retrieve the tuple
         ///////////////////////////////
         // if the key is in the private workspace
-        if(privateWorkspace.contains(key)){
+        if(privateWorkspace.contains(key) && privateWorkspace.getTuple(key).getValue() != null){
             res = new Tuple(key, privateWorkspace.getTuple(key).getValue());
-            /*
+            // if I am the biggest of the receivers
             if(server.getPeerData().getId() == Collections.max(message.getIDs())) {
                 //send(new ReplyMessage("[" + this.socket.getInetAddress().getHostAddress() + "] " + privateWorkspace.getTuple(key).getValue()));
                 // send the tuple as reply, the client manages the printing
                 send(new ReplyMessage(res));
             }
-            */
         }
-        // if the key is not in the private workspace but is stored locally
-        else if(server.containsKey(key)) {
-            res = new Tuple(key, server.getValue(key));
-        }
-        // server does not own the key
         else {
-            // if the server does not own the key it does not mean that it does not exist,
-            // the check is performed while sending the reply
-            res = new Tuple(key, null);
-        }
-        ///////////////////////////////
-        // Send the reply
-        ///////////////////////////////
-        if(someoneShouldHaveTheKey(message.getIDs(), key) || privateWorkspace.contains(key)){ // in this case forwarding is not required
-            System.out.println("[info] Someone should have the key...");
-            // if I am the biggest one of servers which could have the key between the receivers I manage the request
-            if (server.getPeerData().getId() == Collections.max(getPossibleKeyOwners((message).getIDs(), key))) {
-                System.out.println("[info] I should have the key " + key + " and I should reply.");
-                // the key exists and reply is sent
-                if(res.getValue() != null){
-                    System.out.println("[info] I have the tuple with key " + key + "!");
-                    //send(new ReplyMessage("[" + this.socket.getInetAddress().getHostAddress() + "] " + res.getValue()));
-                    send(new ReplyMessage(res));
-                }
-                // the key does not exist
-                else {
-                    PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] Key " + key +" does not exists!");
-                    send(new ErrorMessage(ErrorCode.INVALID_KEY, key));
-                }
+            // if the key is not in the private workspace but is stored locally
+            if (server.containsKey(key)) {
+                res = new Tuple(key, server.getValue(key));
             }
-            // I am not the biggest one: do nothing
+            // server does not own the key
             else {
-                PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] It is not my job to manage the read message with key " + key + "!");
+                // if the server does not own the key it does not mean that it does not exist,
+                // the check is performed while sending the reply
+                res = new Tuple(key, null);
             }
-        }
-        // Forwarding!
-        else {
-            // if I am the biggest one I perform the forwarding
-            if (server.getPeerData().getId() == Collections.max((message).getIDs())) {
-                server.forwardRead(new ForwardedMessage(message, this.creationTime));
+            ///////////////////////////////
+            // Send the reply
+            ///////////////////////////////
+            if (someoneShouldHaveTheKey(message.getIDs(), key)) { // in this case forwarding is not required
+                System.out.println("[info] Someone should have the key...");
+                // if I am the biggest one of servers which could have the key between the receivers I manage the request
+                if (server.getPeerData().getId() == Collections.max(getPossibleKeyOwners((message).getIDs(), key))) {
+                    System.out.println("[info] I should have the key " + key + " and I should reply.");
+                    // the key exists and reply is sent
+                    if (res.getValue() != null) {
+                        System.out.println("[info] I have the tuple with key " + key + "!");
+                        //send(new ReplyMessage("[" + this.socket.getInetAddress().getHostAddress() + "] " + res.getValue()));
+                        send(new ReplyMessage(res));
+                    }
+                    // the key does not exist
+                    else {
+                        PrintHelper.printError("[" + this.socket.getInetAddress().getHostAddress() + "] Key " + key + " does not exists!");
+                        send(new ErrorMessage(ErrorCode.INVALID_KEY, key));
+                    }
+                }
+                // I am not the biggest one: do nothing
+                else {
+                    PrintHelper.printError("[" + this.socket.getInetAddress().getHostAddress() + "] It is not my job to manage the read message with key " + key + "!");
+                }
+            }
+            // Forwarding!
+            else {
+                // if I am the biggest one I perform the forwarding
+                if (server.getPeerData().getId() == Collections.max((message).getIDs())) {
+                    server.forwardRead(new ForwardedMessage(message, this.creationTime));
+                }
             }
         }
         ///////////////////////////////
