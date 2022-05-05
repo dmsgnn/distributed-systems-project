@@ -23,10 +23,11 @@
 - [x] [Dav] CommitMessage
 - [x] [Dav] AbortMessage
 - [ ] 2-phase commit
+  - [ ] creare la coda (buffer) di pendingTransactions - i commit vanno messi qua dentro quando vengono ricevuti (in ordine di timestamp)
+  - [ ] forwarding del commit ai server che non sono nella lista dei riceventi
   - [ ] aggiungere l'ack se il workspace è stato validato (AckMessage)
-  - [ ] gestire gli ack ricevuti, se il numero di ack corrisponde con il numero di server la transazione va persistita localmente
+  - [ ] gestire gli ack ricevuti, se il numero di ack corrisponde con il numero di server la transazione va persistita localmente e va mandato il persist a tutti gli altri.
   - [ ] persistence del workspace alla fine del 2-phase commit
-  - [ ] creare la coda di pendingTransactions
   - [ ] notificare il client se la transazione è invalidata
   
 ## Note

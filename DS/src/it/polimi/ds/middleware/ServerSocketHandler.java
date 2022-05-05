@@ -42,6 +42,7 @@ public class ServerSocketHandler extends SocketHandler {
                 shouldHaveTheKey.add(targetId);
             }
         }
+        System.out.println(shouldHaveTheKey);
         return shouldHaveTheKey;
     }
 
@@ -130,7 +131,7 @@ public class ServerSocketHandler extends SocketHandler {
             res = new Tuple(key, server.getValue(key));
         }
         // server does not own the key
-        else{
+        else {
             // if the server does not own the key it does not mean that it does not exist,
             // the check is performed while sending the reply
             res = new Tuple(key, null);
@@ -138,7 +139,7 @@ public class ServerSocketHandler extends SocketHandler {
         ///////////////////////////////
         // Send the reply
         ///////////////////////////////
-        if(someoneShouldHaveTheKey(message.getIDs(), key)){ // in this case forwarding is not required
+        if(someoneShouldHaveTheKey(message.getIDs(), key) || privateWorkspace.contains(key)){ // in this case forwarding is not required
             System.out.println("[info] Someone should have the key...");
             // if I am the biggest one of servers which could have the key between the receivers I manage the request
             if (server.getPeerData().getId() == Collections.max(getPossibleKeyOwners((message).getIDs(), key))) {
@@ -194,21 +195,11 @@ public class ServerSocketHandler extends SocketHandler {
             if (source != null) {
                 reply = innerMessage;
                 source.send(reply);
-                // if the innerMessage is a ReplyMessage, the server has to store the tuple in the local
-                // workspace of the source socket.
-                if (innerMessage instanceof ReplyMessage) {
-                    assert source instanceof ServerSocketHandler;
-                    ((ServerSocketHandler) source).storeForwardedReply((ReplyMessage) innerMessage);
-                }
             }
             else {
                 reply = new ForwardedMessage(new ErrorMessage(ErrorCode.UNKNOWN, null), sourceSocketId);
                 source.send(reply);
             }
         }
-    }
-
-    public void storeForwardedReply(ReplyMessage message) {
-        privateWorkspace.put(message.getTuple());
     }
 }
