@@ -11,10 +11,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -34,6 +31,14 @@ public class Server {
     private final ExecutorService executor;
 
     private Store store;
+
+    // commit attributes
+    // this arraylist is the buffer which contains the commit received, ordered by commit timestamp -> the element in the first position is the older one
+    private ArrayList<CommitMessage> commitBuffer = new ArrayList<>();
+    // this map contains a pair of timestamp (which is the one of the commit to manage) and a list of ack messages
+    // (responses by all other servers related to the commit with that specific timestamp)
+    private HashMap<Timestamp, ArrayList<AckMessage>> commitResponses = new HashMap<>();
+
 
     public Server(int id, String configPath) {
         executor = Executors.newCachedThreadPool();
@@ -186,7 +191,7 @@ public class Server {
         return connectionsToServers;
     }
 
-    public void commitTransaction(Workspace w, CommitMessage m) {
+    public synchronized void commitTransaction(Workspace w, CommitMessage m) {
         // TODO fix
         /*
         Workspace w;
@@ -209,6 +214,24 @@ public class Server {
                 // TODO Forward the ack
             }
         }*/
+
+        CommitMessage commit = new CommitMessage(w, m.getCommitTimestamp(), m.getServers());
+        commitBuffer.add(commit);
+        if(commitBuffer.size() > 1) {
+            commitBuffer.sort(Comparator.comparing(CommitMessage::getCommitTimestamp));
+        }
+        System.out.println("Commit message with timestamp " + m.getCommitTimestamp() + " added to buffer");
+
+        // if i am the one with the biggest id i am elected to forward the commit and to manage replies
+        if(getPeerData().getId() == Collections.max(m.getIDs()) && (m.getIDs().size() != peers.size())){
+            commit.setPeers(peers);
+            for (Peer peer : peers) {
+                if (!m.getIDs().contains(peer.getId())) {
+                    connectionsToServers.get(peer.getId()).send(commit);
+                }
+            }
+        }
+
     }
 
     public boolean isWorkspaceValid(Workspace w) {

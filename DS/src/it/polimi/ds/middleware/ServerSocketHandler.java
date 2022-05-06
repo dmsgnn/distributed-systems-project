@@ -83,7 +83,12 @@ public class ServerSocketHandler extends SocketHandler {
                     this.privateWorkspace = null;
                 }
                 else if (message instanceof CommitMessage) {
-                    server.commitTransaction(this.privateWorkspace, (CommitMessage) message); // TODO fix
+                    if(privateWorkspace != null) {
+                        server.commitTransaction(this.privateWorkspace, (CommitMessage) message);
+                    }
+                    else{
+                        server.commitTransaction(((CommitMessage) message).getWorkspace(), (CommitMessage) message);
+                    }
                 }
                 else if (message instanceof ForwardedMessage) {
                     handleForwardedMessage((ForwardedMessage) message);
