@@ -11,6 +11,7 @@ public class CommitMessage extends Message {
     private List<Peer> peers;
 
     private Timestamp commitTimestamp;
+    private ArrayList<Integer> idList = new ArrayList<>();
 
     private Workspace workspace;
 
@@ -18,15 +19,21 @@ public class CommitMessage extends Message {
         this.peers = peers;
         this.commitTimestamp = ts;
         this.workspace = w;
+
     }
 
     public CommitMessage(Timestamp ts, List<Peer> peers) {
         this.peers = peers;
         this.commitTimestamp = ts;
+        peers.forEach((temp) -> idList.add(temp.getId()));
     }
 
     public void setPeers(List<Peer> peers) {
         this.peers = peers;
+    }
+
+    public ArrayList<Integer> getIDs() {
+        return idList;
     }
 
     public Timestamp getCommitTimestamp() {
@@ -43,14 +50,5 @@ public class CommitMessage extends Message {
 
     public void setWorkspace(Workspace w) {
         this.workspace = w;
-    }
-
-    /**
-     * @return the list of the IDs of receivers
-     */
-    public ArrayList<Integer> getIDs (){
-        ArrayList<Integer> idList = new ArrayList<>();
-        getServers().stream().forEach((temp) -> idList.add(temp.getId()));
-        return idList;
     }
 }

@@ -191,7 +191,7 @@ public class Server {
         return connectionsToServers;
     }
 
-    public synchronized void commitTransaction(Workspace w, CommitMessage m) {
+    public synchronized void commitTransaction(CommitMessage m, boolean clientSender) {
         // TODO fix
         /*
         Workspace w;
@@ -215,19 +215,19 @@ public class Server {
             }
         }*/
 
-        CommitMessage commit = new CommitMessage(w, m.getCommitTimestamp(), m.getServers());
-        commitBuffer.add(commit);
+        commitBuffer.add(m);
         if(commitBuffer.size() > 1) {
             commitBuffer.sort(Comparator.comparing(CommitMessage::getCommitTimestamp));
         }
         System.out.println("Commit message with timestamp " + m.getCommitTimestamp() + " added to buffer");
+        //System.out.println(commit.getWorkspace().toString());
 
         // if i am the one with the biggest id i am elected to forward the commit and to manage replies
-        if(getPeerData().getId() == Collections.max(m.getIDs()) && (m.getIDs().size() != peers.size())){
-            commit.setPeers(peers);
+        if(clientSender && (getPeerData().getId() == Collections.max(m.getIDs()))){
             for (Peer peer : peers) {
                 if (!m.getIDs().contains(peer.getId())) {
-                    connectionsToServers.get(peer.getId()).send(commit);
+                    System.out.println("io server " + getPeerData().getId() + "forwardo a " + peer.getId());
+                    connectionsToServers.get(peer.getId()).send(m);
                 }
             }
         }
