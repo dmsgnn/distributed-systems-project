@@ -90,8 +90,10 @@ public class ClientMain {
             case 3 -> { // begin transaction
                 client.begin();
                 boolean isTerminated = false;
+                int count = 0;
                 do {
-                    isTerminated = menuTransaction(client);
+                    isTerminated = menuTransaction(client, count);
+                    count++;
                 } while (!isTerminated);
             }
             case 4 -> { // exit
@@ -107,7 +109,7 @@ public class ClientMain {
      * @param client The instance of client that performs the transaction
      * @return True if the transaction is terminated, False otherwise
      */
-    private static boolean menuTransaction(Client client) {
+    private static boolean menuTransaction(Client client, int count) {
         System.out.println("Select one of the following operations:");
         String[] options = {
                 "Write",                //1
@@ -131,7 +133,12 @@ public class ClientMain {
             case 2 -> // read tuple
                 menuRead(client);
             case 3 -> { // commit
-                client.commit();
+                if (count != 0) {
+                    client.commit();
+                }
+                else {
+                    client.abort();
+                }
                 return true;
             }
             case 4 -> { // abort
