@@ -97,6 +97,9 @@ public class ServerSocketHandler extends SocketHandler {
                 else if (message instanceof ForwardedMessage) {
                     handleForwardedMessage((ForwardedMessage) message);
                 }
+                else if (message instanceof VoteMessage) {
+                    server.doVote((VoteMessage) message);
+                }
                 else {
                     PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and has been ignored");
                     //System.out.println("\u001B[31m" + "["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and has been ignored" + "\u001B[0m");

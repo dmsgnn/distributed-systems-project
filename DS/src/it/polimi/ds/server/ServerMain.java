@@ -183,7 +183,7 @@ public class ServerMain {
         return isAlive;
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         int id;
         if(args.length >= 1)
             id = Integer.parseInt(args[0]);

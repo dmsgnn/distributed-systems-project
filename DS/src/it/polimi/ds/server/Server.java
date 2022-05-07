@@ -1,6 +1,7 @@
 package it.polimi.ds.server;
 
 import it.polimi.ds.helpers.ConfigHelper;
+import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.messages.*;
 import it.polimi.ds.middleware.ServerSocketHandler;
 import it.polimi.ds.middleware.SocketHandler;
@@ -33,7 +34,7 @@ public class Server {
 
     // commit attributes
     // this arraylist is the buffer which contains the commit received, ordered by commit timestamp -> the element in the first position is the older one
-    private ArrayList<CommitInfo> commitBuffer = new ArrayList<>();
+    public ArrayList<CommitInfo> commitBuffer = new ArrayList<>();
     // this map contains a pair of timestamp (which is the one of the commit to manage) and a list of ack messages
     // (responses by all other servers related to the commit with that specific timestamp)
     private HashMap<Timestamp, ArrayList<AckMessage>> commitResponses = new HashMap<>();
@@ -191,17 +192,24 @@ public class Server {
     }
 
     private void manageNextCommit() {
+        // if the buffer is not empty
         if(commitBuffer.size() > 0) {
-            //printCommitBuffer();
             CommitInfo commitInfo = commitBuffer.get(0);
-            System.out.println("Managing commit " + commitInfo.getCommitTimestamp());
-            boolean isValid = isWorkspaceValid(commitInfo.getCommitMessage().getWorkspace());
-            // if for me the workspace is valid, I send the ack to the server managing the commit
-            if (isValid) {
-                System.out.println("For me it is valid :)");
-                // if the manager is in the server list I need to send an ack
-                if (connectionsToServers.values().contains(commitInfo.getCommitManager())) {
-                    commitInfo.getCommitManager().send(new AckMessage(commitInfo.getCommitTimestamp()));
+            // I have to check whether I am the manager
+            if (!connectionsToServers.values().contains((commitInfo.getCommitManager()))){
+                System.out.println("Managing commit " + commitInfo.getCommitTimestamp());
+                boolean isValid = isWorkspaceValid(commitInfo.getCommitMessage().getWorkspace());
+                // if for me the workspace is valid, I need to request the vote
+                if (isValid) {
+                    System.out.println("For me it is valid :)");
+                    commitInfo.updateIter();
+                    System.out.println("Request vote for "+commitInfo.getCommitTimestamp() + "... (attempt #" + commitInfo.getIter()+")");
+                    for (SocketHandler connection : connectionsToServers.values()) {
+                        connection.send(new VoteMessage(commitInfo.getCommitTimestamp(), commitInfo.getIter()));
+                    }
+                }
+                else {
+                    // TODO abort
                 }
             }
         }
@@ -217,18 +225,19 @@ public class Server {
      */
     public synchronized void commitTransaction(CommitMessage m, boolean clientSender, ServerSocketHandler sourceConnection) {
         // if I am the one with the biggest id I am elected to forward the commit and to manage replies (i.e. I am the commit manager)
+        System.out.println("Commit received!");
         if(clientSender && (getPeerData().getId() == Collections.max(m.getIDs()))) {
-            enqueueCommit(new CommitInfo(m, sourceConnection), true);
             for (Peer peer : peers) {
                 if (!m.getIDs().contains(peer.getId())) {
                     System.out.println("io server " + getPeerData().getId() + " forwardo a " + peer.getId());
                     connectionsToServers.get(peer.getId()).send(m);
                 }
             }
+            enqueueCommit(new CommitInfo(m, sourceConnection), true);
         }
         else if (clientSender) { // if the client is the sender but I am not elected as manager => I need to save the connection to the manager
             ServerSocketHandler manager = connectionsToServers.get(Collections.max(m.getIDs())); // get the manager
-            enqueueCommit(new CommitInfo(m, manager), true); // save the commit
+            enqueueCommit(new CommitInfo(m, manager)); // save the commit
         }
         else { // if I received the message from a server, such server is the manager
             enqueueCommit(new CommitInfo(m, sourceConnection));
@@ -290,22 +299,26 @@ public class Server {
         //System.out.println("Handling AckMessage");
         if(message.isAck()) {
             //System.out.println("Positive ack");
-            commitResponses.get(message.getCommitTimestamp()).add(message);
-            // if the size of the list of acks is the same as the size of the list of connections to servers
-            // and the first commit in the buffer is actually the one that got acknowledged
-            if (commitResponses.get(message.getCommitTimestamp()).size() == connectionsToServers.size()
-                && commitBuffer.get(0).getCommitTimestamp().equals(message.getCommitTimestamp())) {
-                // validate and eventually persist
-                if(isWorkspaceValid(commitBuffer.get(0).getCommitMessage().getWorkspace())) {
-                    System.out.println("This workspace can be persisted!");
-                    System.out.println(commitBuffer.get(0).getCommitMessage().getWorkspace());
-                    // TODO persist
-                    dequeueCommit(true);
+            // if the first commit in the buffer is actually the one that got acknowledged
+            // and the first commit in the buffer has the same iter number as the one in the ack
+            if(commitBuffer.get(0).getCommitTimestamp().equals(message.getCommitTimestamp())
+                    && commitBuffer.get(0).getIter() == message.getIter()) {
+                // add it to the list of acks
+                commitResponses.get(message.getCommitTimestamp()).add(message);
+                // if the size of the list of acks is the same as the size of the list of connections to servers
+                if (commitResponses.get(message.getCommitTimestamp()).size() == connectionsToServers.size()) {
+                    // validate and eventually persist
+                    if (isWorkspaceValid(commitBuffer.get(0).getCommitMessage().getWorkspace())) {
+                        System.out.println("This workspace can be persisted! "+ commitBuffer.get(0).getCommitTimestamp());
+                        System.out.println(commitBuffer.get(0).getCommitMessage().getWorkspace());
+                        // TODO persist
+                        dequeueCommit(true);
+                    }
                 }
             }
         }
         else {
-            // TODO
+            // TODO abort
         }
     }
 
@@ -315,5 +328,22 @@ public class Server {
             System.out.print(connectionsToServers.containsValue(s) + ", ");
         }
         System.out.println("\n");
+    }
+
+    public void doVote(VoteMessage message) {
+        // somebody asked me to vote
+        while (commitBuffer.size() == 0) {
+            PrintHelper.printError("Trying to vote but commitBuffer empty. Are you trying to vote before committing?");
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        // if the first element in the queue is actually the one that I have to vote
+        if (commitBuffer.get(0).getCommitTimestamp().equals(message.getCommitTimestamp())) {
+            boolean isValid = isWorkspaceValid(commitBuffer.get(0).getCommitMessage().getWorkspace());
+            commitBuffer.get(0).getCommitManager().send(new AckMessage(isValid, message.getCommitTimestamp(), message.getIter()));
+        }
     }
 }

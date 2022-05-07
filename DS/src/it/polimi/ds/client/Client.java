@@ -33,7 +33,7 @@ public class Client {
         }
     }
 
-    public void connect(int peerId) {
+    public boolean connect(int peerId) {
         // Try to create a connection with the selected peer
         try {
             Peer peer = getPeer(peerId);
@@ -42,10 +42,12 @@ public class Client {
                 connections.add(s);
                 peersConnected.add(peer);
                 peers.remove(peer);
+                return true;
             }
         } catch (IndexOutOfBoundsException e) {
             PrintHelper.printError("Invalid input...");
         }
+        return false;
     }
 
     public void detach(int peerId) {

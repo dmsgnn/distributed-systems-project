@@ -9,9 +9,12 @@ public class CommitInfo {
     CommitMessage commitMessage;
     ServerSocketHandler commitManager;
 
+    int iter;
+
     public CommitInfo (CommitMessage message, ServerSocketHandler sh) {
         this.commitMessage = message;
         this.commitManager = sh;
+        this.iter = 0;
     }
 
     public CommitMessage getCommitMessage() {
@@ -24,5 +27,14 @@ public class CommitInfo {
 
     public Timestamp getCommitTimestamp() {
         return commitMessage.getCommitTimestamp();
+    }
+
+    public int getIter() {
+        return this.iter;
+    }
+
+    public int updateIter() {
+        iter++;
+        return this.iter;
     }
 }
