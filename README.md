@@ -22,7 +22,7 @@
 - [x] [Dav] BeginMessage
 - [x] [Dav] CommitMessage
 - [x] [Dav] AbortMessage
-- [ ] Controllare che il client non mandi commit vuoti (senza operazioni)
+- [x] Controllare che il client non mandi commit vuoti (senza operazioni)
 - [ ] 2-phase commit
   - [x] creare la coda (buffer) di pendingTransactions - i commit vanno messi qua dentro quando vengono ricevuti (in ordine di timestamp)
   - [x] forwarding del commit ai server che non sono nella lista dei riceventi
@@ -32,10 +32,10 @@
   - [ ] [Gio] persistence del workspace alla fine del 2-phase commit
   - [ ] notificare il client al termine del 2pc
   - [ ] abort se un server non valida la transazione
-  - [ ] [Dav] VoteMessage
-    - [ ] gestire iterazioni di vote in CommitInfo
-    - [ ] aggiungere iterazione all'AckMessage
-    - [ ] verificare che `iter(CommitInfo) == iter(AckMessage)`
+  - [x] [Dav] VoteMessage
+    - [x] gestire iterazioni di vote in CommitInfo
+    - [x] aggiungere iterazione all'AckMessage
+    - [x] verificare che `iter(CommitInfo) == iter(AckMessage)`
   
 ## Note
 - [x] Nel read è necessario vedere se il client sta già lavorando su un workspace locale ed eventualmente restituire il valore del workspace

@@ -37,7 +37,7 @@ public class Server {
     public ArrayList<CommitInfo> commitBuffer = new ArrayList<>();
     // this map contains a pair of timestamp (which is the one of the commit to manage) and a list of ack messages
     // (responses by all other servers related to the commit with that specific timestamp)
-    private HashMap<Timestamp, ArrayList<AckMessage>> commitResponses = new HashMap<>();
+    private HashMap<Timestamp, Integer> commitResponses = new HashMap<>();
 
 
     public Server(int id, String configPath) {
@@ -247,7 +247,7 @@ public class Server {
     public void enqueueCommit(CommitInfo commit, boolean isManager) {
         enqueueCommit(commit);
         if (isManager) {
-            commitResponses.put(commit.getCommitTimestamp(), new ArrayList<>());
+            commitResponses.put(commit.getCommitTimestamp(), 0);
         }
     }
     public void enqueueCommit(CommitInfo commit) {
@@ -304,9 +304,9 @@ public class Server {
             if(commitBuffer.get(0).getCommitTimestamp().equals(message.getCommitTimestamp())
                     && commitBuffer.get(0).getIter() == message.getIter()) {
                 // add it to the list of acks
-                commitResponses.get(message.getCommitTimestamp()).add(message);
+                commitResponses.replace(message.getCommitTimestamp(), commitResponses.get(message.getCommitTimestamp()) + 1);
                 // if the size of the list of acks is the same as the size of the list of connections to servers
-                if (commitResponses.get(message.getCommitTimestamp()).size() == connectionsToServers.size()) {
+                if (commitResponses.get(message.getCommitTimestamp()) == connectionsToServers.size()) {
                     // validate and eventually persist
                     if (isWorkspaceValid(commitBuffer.get(0).getCommitMessage().getWorkspace())) {
                         System.out.println("This workspace can be persisted! "+ commitBuffer.get(0).getCommitTimestamp());
