@@ -4,8 +4,7 @@ import it.polimi.ds.helpers.ConfigHelper;
 import it.polimi.ds.messages.*;
 import it.polimi.ds.middleware.ServerSocketHandler;
 import it.polimi.ds.middleware.SocketHandler;
-import it.polimi.ds.model.Peer;
-import it.polimi.ds.model.Tuple;
+import it.polimi.ds.model.*;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -34,7 +33,7 @@ public class Server {
 
     // commit attributes
     // this arraylist is the buffer which contains the commit received, ordered by commit timestamp -> the element in the first position is the older one
-    private ArrayList<CommitMessage> commitBuffer = new ArrayList<>();
+    private ArrayList<CommitInfo> commitBuffer = new ArrayList<>();
     // this map contains a pair of timestamp (which is the one of the commit to manage) and a list of ack messages
     // (responses by all other servers related to the commit with that specific timestamp)
     private HashMap<Timestamp, ArrayList<AckMessage>> commitResponses = new HashMap<>();
@@ -191,47 +190,81 @@ public class Server {
         return connectionsToServers;
     }
 
-    public synchronized void commitTransaction(CommitMessage m, boolean clientSender) {
-        // TODO fix
-        /*
-        Workspace w;
-        if(!connectionsToServers.containsValue(socketHandler)) { // The message arrived from a client
-            w = workspaces.get(socketHandler);
-            w.setCommitTimestamp(m.getTimestamp());
-            // TODO check if I should forward or there's someone else with higher ID
-            if(isWorkspaceValid(w)) { // if the workspace is valid
-                // forward the commit
-                m.setWorkspace(w);
-                for (Map.Entry<Integer, SocketHandler> entry : connectionsToServers.entrySet()) { // Forward the
-                    SocketHandler connection = entry.getValue();
-                    connection.send(m);
+    private void manageNextCommit() {
+        if(commitBuffer.size() > 0) {
+            //printCommitBuffer();
+            CommitInfo commitInfo = commitBuffer.get(0);
+            System.out.println("Managing commit " + commitInfo.getCommitTimestamp());
+            boolean isValid = isWorkspaceValid(commitInfo.getCommitMessage().getWorkspace());
+            // if for me the workspace is valid, I send the ack to the server managing the commit
+            if (isValid) {
+                System.out.println("For me it is valid :)");
+                // if the manager is in the server list I need to send an ack
+                if (connectionsToServers.values().contains(commitInfo.getCommitManager())) {
+                    commitInfo.getCommitManager().send(new AckMessage(commitInfo.getCommitTimestamp()));
                 }
             }
         }
-        else { // The message arrived from a server
-            w = m.getWorkspace();
-            if(isWorkspaceValid(w)) {
-                // TODO Forward the ack
-            }
-        }*/
+    }
 
-        commitBuffer.add(m);
-        if(commitBuffer.size() > 1) {
-            commitBuffer.sort(Comparator.comparing(CommitMessage::getCommitTimestamp));
-        }
-        System.out.println("Commit message with timestamp " + m.getCommitTimestamp() + " added to buffer");
-        //System.out.println(commit.getWorkspace().toString());
-
-        // if i am the one with the biggest id i am elected to forward the commit and to manage replies
-        if(clientSender && (getPeerData().getId() == Collections.max(m.getIDs()))){
+    /**
+     *
+     * @param m the CommitMessage that required the commit
+     * @param clientSender true if the sender is a client, false otherwise
+     * @param sourceConnection the socket that has a connection to the source of the commit,
+     *                         if I am the manager I save the connection to the client,
+     *                         otherwise I save the connection to the manager.
+     */
+    public synchronized void commitTransaction(CommitMessage m, boolean clientSender, ServerSocketHandler sourceConnection) {
+        // if I am the one with the biggest id I am elected to forward the commit and to manage replies (i.e. I am the commit manager)
+        if(clientSender && (getPeerData().getId() == Collections.max(m.getIDs()))) {
+            enqueueCommit(new CommitInfo(m, sourceConnection), true);
             for (Peer peer : peers) {
                 if (!m.getIDs().contains(peer.getId())) {
-                    System.out.println("io server " + getPeerData().getId() + "forwardo a " + peer.getId());
+                    System.out.println("io server " + getPeerData().getId() + " forwardo a " + peer.getId());
                     connectionsToServers.get(peer.getId()).send(m);
                 }
             }
         }
+        else if (clientSender) { // if the client is the sender but I am not elected as manager => I need to save the connection to the manager
+            ServerSocketHandler manager = connectionsToServers.get(Collections.max(m.getIDs())); // get the manager
+            enqueueCommit(new CommitInfo(m, manager), true); // save the commit
+        }
+        else { // if I received the message from a server, such server is the manager
+            enqueueCommit(new CommitInfo(m, sourceConnection));
+        }
+    }
 
+    public void enqueueCommit(CommitInfo commit, boolean isManager) {
+        enqueueCommit(commit);
+        if (isManager) {
+            commitResponses.put(commit.getCommitTimestamp(), new ArrayList<>());
+        }
+    }
+    public void enqueueCommit(CommitInfo commit) {
+        commitBuffer.add(commit);
+        if(commitBuffer.size() > 1) {
+            commitBuffer.sort(Comparator.comparing(CommitInfo::getCommitTimestamp));
+        }
+        System.out.println("Commit message with timestamp " + commit.getCommitTimestamp() + " added to buffer");
+        //System.out.println(commit.getWorkspace().toString());
+        manageNextCommit();
+    }
+    public CommitInfo dequeueCommit(boolean isManager) {
+        CommitInfo removed = dequeueCommit();
+        if (isManager) {
+            commitResponses.remove(removed.getCommitTimestamp());
+        }
+        return removed;
+    }
+    public CommitInfo dequeueCommit() {
+        CommitInfo removed = commitBuffer.remove(0);
+        if(commitBuffer.size() > 1) {
+            commitBuffer.sort(Comparator.comparing(CommitInfo::getCommitTimestamp));
+        }
+        System.out.println("Commit message with timestamp " + removed.getCommitTimestamp() + " removed from buffer");
+        manageNextCommit();
+        return removed;
     }
 
     public boolean isWorkspaceValid(Workspace w) {
@@ -251,5 +284,36 @@ public class Server {
             }
         }
         return null;
+    }
+
+    public void handleAckMessage(AckMessage message) {
+        //System.out.println("Handling AckMessage");
+        if(message.isAck()) {
+            //System.out.println("Positive ack");
+            commitResponses.get(message.getCommitTimestamp()).add(message);
+            // if the size of the list of acks is the same as the size of the list of connections to servers
+            // and the first commit in the buffer is actually the one that got acknowledged
+            if (commitResponses.get(message.getCommitTimestamp()).size() == connectionsToServers.size()
+                && commitBuffer.get(0).getCommitTimestamp().equals(message.getCommitTimestamp())) {
+                // validate and eventually persist
+                if(isWorkspaceValid(commitBuffer.get(0).getCommitMessage().getWorkspace())) {
+                    System.out.println("This workspace can be persisted!");
+                    System.out.println(commitBuffer.get(0).getCommitMessage().getWorkspace());
+                    // TODO persist
+                    dequeueCommit(true);
+                }
+            }
+        }
+        else {
+            // TODO
+        }
+    }
+
+    public void printCommitBuffer() {
+        for (CommitInfo elem : commitBuffer) {
+            ServerSocketHandler s = elem.getCommitManager();
+            System.out.print(connectionsToServers.containsValue(s) + ", ");
+        }
+        System.out.println("\n");
     }
 }

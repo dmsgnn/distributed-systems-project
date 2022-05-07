@@ -1,7 +1,7 @@
 package it.polimi.ds.messages;
 
 import it.polimi.ds.model.Peer;
-import it.polimi.ds.server.Workspace;
+import it.polimi.ds.model.Workspace;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;

@@ -1,4 +1,4 @@
-package it.polimi.ds.server;
+package it.polimi.ds.model;
 
 import it.polimi.ds.model.Tuple;
 

@@ -6,7 +6,7 @@ import it.polimi.ds.messages.*;
 import it.polimi.ds.model.Peer;
 import it.polimi.ds.model.Tuple;
 import it.polimi.ds.server.Server;
-import it.polimi.ds.server.Workspace;
+import it.polimi.ds.model.Workspace;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -85,11 +85,14 @@ public class ServerSocketHandler extends SocketHandler {
                 else if (message instanceof CommitMessage) {
                     if(((CommitMessage) message).getWorkspace() == null) {
                         ((CommitMessage) message).setWorkspace(this.privateWorkspace);
-                        server.commitTransaction((CommitMessage) message, true);
+                        server.commitTransaction((CommitMessage) message, true, this);
                     }
                     else{
-                        server.commitTransaction((CommitMessage) message, false);
+                        server.commitTransaction((CommitMessage) message, false, this);
                     }
+                }
+                else if (message instanceof AckMessage) {
+                    server.handleAckMessage((AckMessage) message);
                 }
                 else if (message instanceof ForwardedMessage) {
                     handleForwardedMessage((ForwardedMessage) message);
