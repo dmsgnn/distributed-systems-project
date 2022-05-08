@@ -3,6 +3,7 @@ package it.polimi.ds.middleware;
 import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.messages.ErrorMessage;
 import it.polimi.ds.messages.Message;
+import it.polimi.ds.messages.OutcomeMessage;
 import it.polimi.ds.messages.ReplyMessage;
 import it.polimi.ds.model.Peer;
 
@@ -31,6 +32,12 @@ public class ClientSocketHandler extends SocketHandler {
                     }
                     if(message instanceof ErrorMessage) {
                         PrintHelper.printError((ErrorMessage) message, this.getPeer().getHost());
+                    }
+                    if(message instanceof OutcomeMessage){
+                        if(((OutcomeMessage) message).isOutcome())
+                            System.out.println("Commit successful!");
+                        else
+                            PrintHelper.printError("Commit was not possible, transaction has been aborted.");
                     }
                 } catch (EOFException e) {
                     System.out.println("Nothing to read...");

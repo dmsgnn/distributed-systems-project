@@ -3,6 +3,7 @@ package it.polimi.ds.model;
 import it.polimi.ds.model.Tuple;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,6 +28,10 @@ public class Store implements Serializable {
     public void put(Tuple t) {
         store.put(t.getKey(), t);
         //out.println(this); // uncomment to debug store status
+    }
+
+    public Map<Integer, Tuple> getStore() {
+        return store;
     }
 
     public String toString() {

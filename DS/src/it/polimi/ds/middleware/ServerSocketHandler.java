@@ -43,6 +43,7 @@ public class ServerSocketHandler extends SocketHandler {
             }
         }
         System.out.println(shouldHaveTheKey);
+        System.out.println(shouldHaveTheKey);
         return shouldHaveTheKey;
     }
 
@@ -99,6 +100,12 @@ public class ServerSocketHandler extends SocketHandler {
                 }
                 else if (message instanceof VoteMessage) {
                     server.doVote((VoteMessage) message);
+                }
+                else if(message instanceof AbortTransactionMessage){
+                    server.abortTransaction(((AbortTransactionMessage) message).getAbortTimestamp());
+                }
+                else if(message instanceof PersistMessage){
+                    server.persistTransactionRequest(((PersistMessage) message).getPersistTimestamp());
                 }
                 else {
                     PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and has been ignored");

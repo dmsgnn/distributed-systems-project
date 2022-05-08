@@ -264,6 +264,7 @@ public class Server {
         if (isManager) {
             commitResponses.remove(removed.getCommitTimestamp());
         }
+        //System.out.println("Commit message with timestamp " + removed.getCommitTimestamp() + " removed from buffer");
         return removed;
     }
     public CommitInfo dequeueCommit() {
@@ -311,15 +312,61 @@ public class Server {
                     if (isWorkspaceValid(commitBuffer.get(0).getCommitMessage().getWorkspace())) {
                         System.out.println("This workspace can be persisted! "+ commitBuffer.get(0).getCommitTimestamp());
                         System.out.println(commitBuffer.get(0).getCommitMessage().getWorkspace());
-                        // TODO persist
+                        persistTransaction(commitBuffer.get(0).getCommitMessage().getWorkspace());
+                        forwardPersist();
+                        //notify the client
+                        commitBuffer.get(0).getCommitManager().send(new OutcomeMessage(true));
                         dequeueCommit(true);
                     }
                 }
             }
         }
         else {
-            // TODO abort
+            // Abort the transaction
+            for(Map.Entry<Integer, ServerSocketHandler>  sv : connectionsToServers.entrySet()){
+                sv.getValue().send(new AbortTransactionMessage(commitBuffer.get(0).getCommitTimestamp()));
+            }
+            dequeueCommit(true);
         }
+    }
+
+    private void forwardPersist(){
+        for(Map.Entry<Integer, ServerSocketHandler>  sv : connectionsToServers.entrySet()){
+            sv.getValue().send(new PersistMessage(commitBuffer.get(0).getCommitTimestamp()));
+        }
+    }
+
+    public void persistTransactionRequest (Timestamp ts){
+        if(ts == commitBuffer.get(0).getCommitTimestamp()) {
+            System.out.println("This workspace can be persisted! "+ commitBuffer.get(0).getCommitTimestamp());
+            persistTransaction(commitBuffer.get(0).getCommitMessage().getWorkspace());
+            dequeueCommit();
+        }
+        else
+            PrintHelper.printError("The commit transaction is not the first in my commit buffer.");
+    }
+
+    private void persistTransaction (Workspace workspace){
+        for(Map.Entry<Integer, Tuple> entry : workspace.getStore().entrySet()){
+            // if one of the target id is equal to mine I have to persist the tuple
+            for (int i = 0; i<R; i++) {
+                int targetId = ((entry.getKey() % peers.size()) + i) % peers.size();
+                if(targetId == peerData.getId()){
+                    store.put(entry.getValue());
+                }
+            }
+        }
+
+        System.out.println("-----STORE-----");
+        System.out.println(store.toString());
+        System.out.println("---------------");
+    }
+
+    public void abortTransaction (Timestamp ts){
+        if(ts == commitBuffer.get(0).getCommitTimestamp())
+            dequeueCommit();
+        else
+            PrintHelper.printError("The aborted transaction is not the first in my commit buffer.");
     }
 
     public void printCommitBuffer() {

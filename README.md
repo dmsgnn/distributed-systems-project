@@ -29,13 +29,14 @@
   - [x] aggiungere l'ack se il workspace è stato validato (AckMessage)
   - [ ] gestire gli ack ricevuti, se il numero di ack corrisponde con il numero di server la transazione va persistita localmente e va mandato il persist a tutti gli altri.
     - [ ] la lista di ack ricevuti non è necessaria (per ora) quindi utilizzare un contatore di ack
-  - [ ] [Gio] persistence del workspace alla fine del 2-phase commit
-  - [ ] notificare il client al termine del 2pc
-  - [ ] abort se un server non valida la transazione
+  - [x] [Gio] persistence del workspace alla fine del 2-phase commit
+  - [x] notificare il client al termine del 2pc
+  - [x] abort se un server non valida la transazione
   - [x] [Dav] VoteMessage
     - [x] gestire iterazioni di vote in CommitInfo
     - [x] aggiungere iterazione all'AckMessage
     - [x] verificare che `iter(CommitInfo) == iter(AckMessage)`
+  - [ ] Capire per quale motivo quando sono connesso a tutti e tre i server il commit non funziona
   
 ## Note
 - [x] Nel read è necessario vedere se il client sta già lavorando su un workspace locale ed eventualmente restituire il valore del workspace
