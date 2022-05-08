@@ -40,6 +40,9 @@ public class Tuple implements java.io.Serializable{
         return this.timestamp;
     }
 
+    public void setTimestamp(Timestamp timestamp) {
+        this.timestamp = timestamp;
+    }
     public String toString() {
         return key + ": " + value;
     }

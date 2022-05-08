@@ -143,6 +143,7 @@ public class ServerSocketHandler extends SocketHandler {
                 // send the tuple as reply, the client manages the printing
                 send(new ReplyMessage(res));
             }
+            // in this case it is not necessary to put the tuple in the private workspace because it already exists there
         }
         else {
             // if the key is not in the private workspace but is stored locally
@@ -187,11 +188,12 @@ public class ServerSocketHandler extends SocketHandler {
                     server.forwardRead(new ForwardedMessage(message, this.creationTime));
                 }
             }
+            ///////////////////////////////
+            // Store the tuple
+            ///////////////////////////////
+            res.setValue(null); // all the Tuples stored in the workspace caused by reads are stored in the private workspace with null values
+            privateWorkspace.put(res);
         }
-        ///////////////////////////////
-        // Store the tuple
-        ///////////////////////////////
-        privateWorkspace.put(res);
     }
 
     public void handleForwardedMessage(ForwardedMessage message) {

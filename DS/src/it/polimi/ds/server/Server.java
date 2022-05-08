@@ -297,9 +297,9 @@ public class Server {
     }
 
     public void handleAckMessage(AckMessage message) {
-        //System.out.println("Handling AckMessage");
+        System.out.println("Handling AckMessage");
         if(message.isAck()) {
-            //System.out.println("Positive ack");
+            System.out.println("Positive ack");
             // if the first commit in the buffer is actually the one that got acknowledged
             // and the first commit in the buffer has the same iter number as the one in the ack
             if(commitBuffer.get(0).getCommitTimestamp().equals(message.getCommitTimestamp())
@@ -337,7 +337,7 @@ public class Server {
     }
 
     public void persistTransactionRequest (Timestamp ts){
-        if(ts == commitBuffer.get(0).getCommitTimestamp()) {
+        if(ts.equals(commitBuffer.get(0).getCommitTimestamp())) {
             System.out.println("This workspace can be persisted! "+ commitBuffer.get(0).getCommitTimestamp());
             persistTransaction(commitBuffer.get(0).getCommitMessage().getWorkspace());
             dequeueCommit();
@@ -348,11 +348,15 @@ public class Server {
 
     private void persistTransaction (Workspace workspace){
         for(Map.Entry<Integer, Tuple> entry : workspace.getStore().entrySet()){
-            // if one of the target id is equal to mine I have to persist the tuple
-            for (int i = 0; i<R; i++) {
-                int targetId = ((entry.getKey() % peers.size()) + i) % peers.size();
-                if(targetId == peerData.getId()){
-                    store.put(entry.getValue());
+            Tuple target = entry.getValue();
+            if (target.getValue() != null) {
+                target.setTimestamp(commitBuffer.get(0).getCommitTimestamp());
+                // if one of the target id is equal to mine I have to persist the tuple
+                for (int i = 0; i<R; i++) {
+                    int targetId = ((entry.getKey() % peers.size()) + i) % peers.size();
+                    if(targetId == peerData.getId()) {
+                        store.put(target);
+                    }
                 }
             }
         }
