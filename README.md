@@ -23,7 +23,7 @@
 - [x] [Dav] CommitMessage
 - [x] [Dav] AbortMessage
 - [x] Controllare che il client non mandi commit vuoti (senza operazioni)
-- [ ] 2-phase commit
+- [x] 2-phase commit
   - [x] creare la coda (buffer) di pendingTransactions - i commit vanno messi qua dentro quando vengono ricevuti (in ordine di timestamp)
   - [x] forwarding del commit ai server che non sono nella lista dei riceventi
   - [x] aggiungere l'ack se il workspace è stato validato (AckMessage)
@@ -36,7 +36,7 @@
     - [x] gestire iterazioni di vote in CommitInfo
     - [x] aggiungere iterazione all'AckMessage
     - [x] verificare che `iter(CommitInfo) == iter(AckMessage)`
-  - [ ] Capire per quale motivo quando sono connesso a tutti e tre i server il commit non funziona
+  - [x] Capire per quale motivo quando sono connesso a tutti e tre i server il commit non funziona
   
 ## Note
 - [x] Nel read è necessario vedere se il client sta già lavorando su un workspace locale ed eventualmente restituire il valore del workspace

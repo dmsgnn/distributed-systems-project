@@ -66,6 +66,7 @@ public class ServerSocketHandler extends SocketHandler {
             while(true) {
                 Message message = (Message) in.readObject();
                 //System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
+                Thread.sleep((int)(Math.random()*1000+500));
                 if (message instanceof ReadMessage) {
                     this.doRead((ReadMessage) message);
                 }
@@ -93,7 +94,7 @@ public class ServerSocketHandler extends SocketHandler {
                     }
                 }
                 else if (message instanceof AckMessage) {
-                    server.handleAckMessage((AckMessage) message);
+                    server.handleAckMessage((AckMessage) message, this);
                 }
                 else if (message instanceof ForwardedMessage) {
                     handleForwardedMessage((ForwardedMessage) message);
@@ -113,7 +114,7 @@ public class ServerSocketHandler extends SocketHandler {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
             //e.getMessage();
             try {
                 System.out.println("Closing connection with " + socket.getInetAddress().getHostAddress() + ":" + socket.getPort() + "...");

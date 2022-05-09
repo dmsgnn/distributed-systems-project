@@ -86,7 +86,7 @@ public class Server {
         }
     }
 
-    public boolean containsKey(int key) {
+    public synchronized boolean containsKey(int key) {
         return store.contains(key);
     }
 
@@ -107,7 +107,7 @@ public class Server {
         }
     }
 
-    public String getValue(int key) {
+    public synchronized String getValue(int key) {
         return store.getTuple(key).getValue();
     }
 
@@ -150,7 +150,7 @@ public class Server {
         }
     }
 
-    public void forwardRead(ForwardedMessage message) {
+    public synchronized void forwardRead(ForwardedMessage message) {
         int key = ((ReadMessage) message.getMessage()).getKey();
         connectionsToServers.get(key % peers.size()).send(message);
     }
@@ -191,7 +191,7 @@ public class Server {
         return connectionsToServers;
     }
 
-    private void manageNextCommit() {
+    private synchronized void manageNextCommit() {
         // if the buffer is not empty
         if(commitBuffer.size() > 0) {
             CommitInfo commitInfo = commitBuffer.get(0);
@@ -203,13 +203,18 @@ public class Server {
                 if (isValid) {
                     System.out.println("For me it is valid :)");
                     commitInfo.updateIter();
+                    commitResponses.replace(commitInfo.getCommitTimestamp(), 0);
                     System.out.println("Request vote for "+commitInfo.getCommitTimestamp() + "... (attempt #" + commitInfo.getIter()+")");
                     for (SocketHandler connection : connectionsToServers.values()) {
                         connection.send(new VoteMessage(commitInfo.getCommitTimestamp(), commitInfo.getIter()));
                     }
                 }
                 else {
-                    // TODO abort
+                    for (SocketHandler connection : connectionsToServers.values()) {
+                        connection.send(new AbortTransactionMessage(commitInfo.getCommitTimestamp()));
+                    }
+                    commitBuffer.get(0).getCommitManager().send(new OutcomeMessage(false));
+                    dequeueCommit(true); // :)
                 }
             }
         }
@@ -245,10 +250,10 @@ public class Server {
     }
 
     public void enqueueCommit(CommitInfo commit, boolean isManager) {
-        enqueueCommit(commit);
         if (isManager) {
             commitResponses.put(commit.getCommitTimestamp(), 0);
         }
+        enqueueCommit(commit);
     }
     public void enqueueCommit(CommitInfo commit) {
         commitBuffer.add(commit);
@@ -257,7 +262,9 @@ public class Server {
         }
         System.out.println("Commit message with timestamp " + commit.getCommitTimestamp() + " added to buffer");
         //System.out.println(commit.getWorkspace().toString());
-        manageNextCommit();
+        if (commitBuffer.get(0).getCommitTimestamp().equals(commit.getCommitTimestamp())) {
+            manageNextCommit();
+        }
     }
     public CommitInfo dequeueCommit(boolean isManager) {
         CommitInfo removed = dequeueCommit();
@@ -268,6 +275,7 @@ public class Server {
         return removed;
     }
     public CommitInfo dequeueCommit() {
+        System.out.println("Buffer size:" + commitBuffer.size());
         CommitInfo removed = commitBuffer.remove(0);
         if(commitBuffer.size() > 1) {
             commitBuffer.sort(Comparator.comparing(CommitInfo::getCommitTimestamp));
@@ -296,8 +304,8 @@ public class Server {
         return null;
     }
 
-    public void handleAckMessage(AckMessage message) {
-        System.out.println("Handling AckMessage");
+    public synchronized void handleAckMessage(AckMessage message, ServerSocketHandler socketHandler) {
+        System.out.println("Handling AckMessage from " + getSocketId(socketHandler));
         if(message.isAck()) {
             System.out.println("Positive ack");
             // if the first commit in the buffer is actually the one that got acknowledged
@@ -322,11 +330,17 @@ public class Server {
             }
         }
         else {
-            // Abort the transaction
-            for(Map.Entry<Integer, ServerSocketHandler>  sv : connectionsToServers.entrySet()){
-                sv.getValue().send(new AbortTransactionMessage(commitBuffer.get(0).getCommitTimestamp()));
+            if (commitBuffer.size() > 0 && commitBuffer.get(0).getCommitTimestamp().equals(message.getCommitTimestamp())) { // this is the first abort I receive
+                // Abort the transaction
+                for (Map.Entry<Integer, ServerSocketHandler> sv : connectionsToServers.entrySet()) {
+                    sv.getValue().send(new AbortTransactionMessage(commitBuffer.get(0).getCommitTimestamp()));
+                }
+                commitBuffer.get(0).getCommitManager().send(new OutcomeMessage(false));
+                dequeueCommit(true);
             }
-            dequeueCommit(true);
+            else {
+                System.out.println("Double nack received: ignoring...");
+            }
         }
     }
 
@@ -336,7 +350,7 @@ public class Server {
         }
     }
 
-    public void persistTransactionRequest (Timestamp ts){
+    public synchronized void persistTransactionRequest (Timestamp ts){
         if(ts.equals(commitBuffer.get(0).getCommitTimestamp())) {
             System.out.println("This workspace can be persisted! "+ commitBuffer.get(0).getCommitTimestamp());
             persistTransaction(commitBuffer.get(0).getCommitMessage().getWorkspace());
@@ -366,7 +380,7 @@ public class Server {
         System.out.println("---------------");
     }
 
-    public void abortTransaction (Timestamp ts){
+    public synchronized void abortTransaction (Timestamp ts){
         if(ts == commitBuffer.get(0).getCommitTimestamp())
             dequeueCommit();
         else
@@ -381,7 +395,7 @@ public class Server {
         System.out.println("\n");
     }
 
-    public void doVote(VoteMessage message) {
+    public synchronized void doVote(VoteMessage message) {
         // somebody asked me to vote
         while (commitBuffer.size() == 0) {
             PrintHelper.printError("Trying to vote but commitBuffer empty. Are you trying to vote before committing?");
