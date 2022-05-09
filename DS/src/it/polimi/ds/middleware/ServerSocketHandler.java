@@ -66,7 +66,9 @@ public class ServerSocketHandler extends SocketHandler {
             while(true) {
                 Message message = (Message) in.readObject();
                 //System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
-                Thread.sleep((int)(Math.random()*1000+500));
+                int sleepTime = (int)(Math.random()*1000);
+                PrintHelper.printError("Sleep time: " + sleepTime + "ms");
+                Thread.sleep(sleepTime);
                 if (message instanceof ReadMessage) {
                     this.doRead((ReadMessage) message);
                 }
@@ -86,6 +88,7 @@ public class ServerSocketHandler extends SocketHandler {
                 }
                 else if (message instanceof CommitMessage) {
                     if(((CommitMessage) message).getWorkspace() == null) {
+                        //if(this.server.getPeerData().getId() % 2 == 0) Thread.sleep(200);
                         ((CommitMessage) message).setWorkspace(this.privateWorkspace);
                         server.commitTransaction((CommitMessage) message, true, this);
                     }
@@ -100,12 +103,15 @@ public class ServerSocketHandler extends SocketHandler {
                     handleForwardedMessage((ForwardedMessage) message);
                 }
                 else if (message instanceof VoteMessage) {
-                    server.doVote((VoteMessage) message);
+                    boolean done = false;
+                    while (!done) {
+                        done = server.doVote((VoteMessage) message);
+                    }
                 }
                 else if(message instanceof AbortTransactionMessage){
                     server.abortTransaction(((AbortTransactionMessage) message).getAbortTimestamp());
                 }
-                else if(message instanceof PersistMessage){
+                else if(message instanceof PersistMessage) {
                     server.persistTransactionRequest(((PersistMessage) message).getPersistTimestamp());
                 }
                 else {
@@ -114,7 +120,7 @@ public class ServerSocketHandler extends SocketHandler {
                 }
             }
         } catch (Exception e) {
-            //e.printStackTrace();
+            e.printStackTrace();
             //e.getMessage();
             try {
                 System.out.println("Closing connection with " + socket.getInetAddress().getHostAddress() + ":" + socket.getPort() + "...");

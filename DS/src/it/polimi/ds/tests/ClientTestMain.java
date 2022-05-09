@@ -62,6 +62,18 @@ public class ClientTestMain {
         c0.commit();
         // t1 < t2
     }
+
+    private static void test3() {
+        Client c0 = new Client(FILENAME);
+
+        c0.connect(0);
+        c0.connect(1);
+
+        c0.begin();
+        c0.write(0, "secondo");
+
+        c0.commit();
+    }
     /*
      * 1.
      */

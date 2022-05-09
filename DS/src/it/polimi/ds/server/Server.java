@@ -395,20 +395,33 @@ public class Server {
         System.out.println("\n");
     }
 
-    public synchronized void doVote(VoteMessage message) {
+    public synchronized boolean doVote(VoteMessage message) {
         // somebody asked me to vote
-        while (commitBuffer.size() == 0) {
+        // if:
+        //  - my buffer is empty
+        //  - or the first element in my buffer has a greater timestamp than the commitTimestamp of the voteMessage
+        // then => my commitBuffer is not up-to-date
+        //
+        // !!!!! this case can merged in the last else !!!!!
+        if (commitBuffer.size() == 0
+                || commitBuffer.get(0).getCommitTimestamp().after(message.getCommitTimestamp())) {
             PrintHelper.printError("Trying to vote but commitBuffer empty. Are you trying to vote before committing?");
             try {
-                Thread.sleep(100);
+                Thread.sleep(250);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
+            return false;
         }
         // if the first element in the queue is actually the one that I have to vote
-        if (commitBuffer.get(0).getCommitTimestamp().equals(message.getCommitTimestamp())) {
+        if (commitBuffer.size() > 0 && commitBuffer.get(0).getCommitTimestamp().equals(message.getCommitTimestamp())) {
             boolean isValid = isWorkspaceValid(commitBuffer.get(0).getCommitMessage().getWorkspace());
             commitBuffer.get(0).getCommitManager().send(new AckMessage(isValid, message.getCommitTimestamp(), message.getIter()));
+            return true;
+        }
+        else {
+            PrintHelper.printError("I got a vote request for a transaction that is not the first in my commit buffer.");
+            return true;
         }
     }
 }
