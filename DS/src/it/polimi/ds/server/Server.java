@@ -71,6 +71,14 @@ public class Server {
     }
 
     /**
+     * Used for testing. DO NOT USE IN OTHER CONTEXTS!
+     */
+    public Server() {
+        executor = Executors.newCachedThreadPool();
+
+    }
+
+    /**
      * Try to initialize connection with all the peers in config.xml
      */
     private void initializeConnections() {
@@ -90,23 +98,6 @@ public class Server {
         return store.contains(key);
     }
 
-    public void showStore() {
-        System.out.println(this.store.toString());
-    }
-
-    public void setValue(Tuple t) {
-        int first = t.getKey() % peers.size(); // first on which to write
-        int last = (first + R-1) % peers.size(); // last on which to write
-        System.out.println(first + "<=" + peerData.getId() + "<" + last);
-        boolean cond1 = first <= peerData.getId() && peerData.getId() <= last;
-        boolean cond2 = first <= peerData.getId() || peerData.getId() <= last;
-        if ((first < last && cond1) ||
-             first > last && cond2) {
-            store.put(t);
-            showStore();
-        }
-    }
-
     public synchronized String getValue(int key) {
         return store.getTuple(key).getValue();
     }
@@ -124,29 +115,6 @@ public class Server {
             ServerSocketHandler connection = new ServerSocketHandler(clientSocket, this);
             this.connections.add(connection);
             executor.submit(connection);
-        }
-    }
-
-    public void forward(Message message, SocketHandler sourceSocket) {
-        // if the message arrives from another server it has already been forwarded
-        if(!connectionsToServers.values().contains(sourceSocket)) {
-            WriteMessage m = (WriteMessage) message;
-            for (Peer p : m.getServers()) { // If there is a server with higher ID, it has to do the forwarding
-                if(p.getId() > peerData.getId()) {
-                    return;
-                }
-            }
-            // create the list of id who received the message
-            ArrayList<Integer> idList = new ArrayList<>();
-            m.getServers().stream().forEach((temp) -> idList.add(temp.getId()));
-            // If I am the server with the highest ID
-            int key = m.getTuple().getKey();
-            for (int i = 0; i<R; i++) { // Compute list of recipients
-                int targetId = ((key % peers.size()) + i) % peers.size();
-                if(targetId != this.peerData.getId() && !idList.contains(targetId)) {
-                    connectionsToServers.get(targetId).send(message); // do the forwarding
-                }
-            }
         }
     }
 
@@ -229,6 +197,7 @@ public class Server {
      *                         otherwise I save the connection to the manager.
      */
     public synchronized void commitTransaction(CommitMessage m, boolean clientSender, ServerSocketHandler sourceConnection) {
+        // TODO se non esiste il commit con il timestamp del commit che vogliamo abortire -> salvo l'abort in un buffer e ignoro il commit appena mi arriva
         // if I am the one with the biggest id I am elected to forward the commit and to manage replies (i.e. I am the commit manager)
         System.out.println("Commit received!");
         if(clientSender && (getPeerData().getId() == Collections.max(m.getIDs()))) {
@@ -283,6 +252,20 @@ public class Server {
         System.out.println("Commit message with timestamp " + removed.getCommitTimestamp() + " removed from buffer");
         manageNextCommit();
         return removed;
+    }
+
+    public CommitInfo dequeueCommit(CommitInfo commitInfo, boolean isManager) {
+        System.out.println("Buffer size:" + commitBuffer.size());
+        commitBuffer.remove(commitInfo);
+        if(commitBuffer.size() > 1) {
+            commitBuffer.sort(Comparator.comparing(CommitInfo::getCommitTimestamp));
+        }
+        System.out.println("Commit message with timestamp " + commitInfo.getCommitTimestamp() + " removed from buffer");
+        if (isManager) {
+            commitResponses.remove(commitInfo.getCommitTimestamp());
+        }
+        manageNextCommit();
+        return commitInfo;
     }
 
     public boolean isWorkspaceValid(Workspace w) {
@@ -351,13 +334,23 @@ public class Server {
     }
 
     public synchronized void persistTransactionRequest (Timestamp ts){
-        if(ts.equals(commitBuffer.get(0).getCommitTimestamp())) {
-            System.out.println("This workspace can be persisted! "+ commitBuffer.get(0).getCommitTimestamp());
-            persistTransaction(commitBuffer.get(0).getCommitMessage().getWorkspace());
-            dequeueCommit();
+        if(!ts.equals(commitBuffer.get(0).getCommitTimestamp())) {
+            PrintHelper.printError("############### Sto persistendo un elemento che non è in prima posizione");
         }
+        System.out.println("This workspace can be persisted! "+ ts);
+        for (CommitInfo elem : commitBuffer) {
+            if (elem.getCommitTimestamp().equals(ts)) {
+                persistTransaction(elem.getCommitMessage().getWorkspace());
+                dequeueCommit(elem, false);
+                return;
+            }
+        }
+        //}
+        /*
         else
             PrintHelper.printError("The commit transaction is not the first in my commit buffer.");
+
+         */
     }
 
     private void persistTransaction (Workspace workspace){
@@ -380,7 +373,9 @@ public class Server {
         System.out.println("---------------");
     }
 
-    public synchronized void abortTransaction (Timestamp ts){
+    public synchronized void abortTransaction (Timestamp ts) {
+        // TODO non togliamo il primo della lista ma facciamo l'abort del commitInfo con timestamp ts
+        // TODO se non esiste il commit con il timestamp del commit che vogliamo abortire -> salvo l'abort in un buffer e ignoro il commit appena mi arriva
         if(ts == commitBuffer.get(0).getCommitTimestamp())
             dequeueCommit();
         else

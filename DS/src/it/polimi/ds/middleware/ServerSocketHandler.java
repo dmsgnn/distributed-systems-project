@@ -67,8 +67,8 @@ public class ServerSocketHandler extends SocketHandler {
                 Message message = (Message) in.readObject();
                 //System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
                 int sleepTime = (int)(Math.random()*1000);
-                PrintHelper.printError("Sleep time: " + sleepTime + "ms");
-                Thread.sleep(sleepTime);
+                //PrintHelper.printError("Sleep time: " + sleepTime + "ms");
+                //Thread.sleep(sleepTime);
                 if (message instanceof ReadMessage) {
                     this.doRead((ReadMessage) message);
                 }
@@ -88,7 +88,7 @@ public class ServerSocketHandler extends SocketHandler {
                 }
                 else if (message instanceof CommitMessage) {
                     if(((CommitMessage) message).getWorkspace() == null) {
-                        //if(this.server.getPeerData().getId() % 2 == 0) Thread.sleep(200);
+                        if(this.server.getPeerData().getId() == 0) Thread.sleep(200);
                         ((CommitMessage) message).setWorkspace(this.privateWorkspace);
                         server.commitTransaction((CommitMessage) message, true, this);
                     }
@@ -112,6 +112,7 @@ public class ServerSocketHandler extends SocketHandler {
                     server.abortTransaction(((AbortTransactionMessage) message).getAbortTimestamp());
                 }
                 else if(message instanceof PersistMessage) {
+                    Thread.sleep(200);
                     server.persistTransactionRequest(((PersistMessage) message).getPersistTimestamp());
                 }
                 else {

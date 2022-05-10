@@ -6,7 +6,7 @@ public class ClientTestMain {
     private static final String FILENAME = "DS/src/config.xml";
 
     public static void main(String[] args) {
-        test2();
+        test4();
     }
 
     /**
@@ -74,7 +74,28 @@ public class ClientTestMain {
 
         c0.commit();
     }
-    /*
-     * 1.
-     */
+
+    public static void test4() {
+        Client c0 = new Client(FILENAME);
+        Client c1 = new Client(FILENAME);
+
+
+        c0.connect(0);
+        c1.connect(1);
+
+        c1.begin();
+        c1.write(0, "primo"); // sul server 1
+
+        c0.begin();
+        c0.write(0, "secondo"); // sul server 0
+
+        c0.commit();
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        c1.commit();
+        // t1 < t2
+    }
 }
