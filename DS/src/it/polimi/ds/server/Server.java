@@ -6,6 +6,7 @@ import it.polimi.ds.messages.*;
 import it.polimi.ds.middleware.ServerSocketHandler;
 import it.polimi.ds.middleware.SocketHandler;
 import it.polimi.ds.model.*;
+import it.polimi.ds.tests.helpers.TestSpecs;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -18,6 +19,7 @@ import java.util.concurrent.Executors;
 import static java.lang.System.exit;
 
 public class Server {
+    private TestSpecs testSpecs;
     private int R;
     private Peer peerData; // contains peer data (id, inetAddress, port)
     private List<Peer> peers;
@@ -75,7 +77,12 @@ public class Server {
      */
     public Server() {
         executor = Executors.newCachedThreadPool();
+        this.store = new Store();
+    }
 
+    public Server(int id, String configPath, TestSpecs ts) {
+        this(id, configPath);
+        this.testSpecs = ts;
     }
 
     /**
@@ -418,5 +425,13 @@ public class Server {
             PrintHelper.printError("I got a vote request for a transaction that is not the first in my commit buffer.");
             return true;
         }
+    }
+
+    public void putInStore(Tuple t) {
+        this.store.put(t);
+    }
+
+    public TestSpecs getTestSpecs() {
+        return testSpecs;
     }
 }

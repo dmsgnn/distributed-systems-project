@@ -7,12 +7,15 @@ import it.polimi.ds.model.Peer;
 import it.polimi.ds.model.Tuple;
 import it.polimi.ds.server.Server;
 import it.polimi.ds.model.Workspace;
+import it.polimi.ds.tests.helpers.DelayMessageDelivery;
+import it.polimi.ds.tests.helpers.TestSpecs;
 
 import java.io.IOException;
 import java.net.Socket;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 public class ServerSocketHandler extends SocketHandler {
 
@@ -66,9 +69,12 @@ public class ServerSocketHandler extends SocketHandler {
             while(true) {
                 Message message = (Message) in.readObject();
                 //System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
-                int sleepTime = (int)(Math.random()*1000);
+                //int sleepTime = (int)(Math.random()*1000);
                 //PrintHelper.printError("Sleep time: " + sleepTime + "ms");
                 //Thread.sleep(sleepTime);
+                if (server.getTestSpecs() != null) {
+                    simulateNetworkDelay(server.getTestSpecs(), message.getClass());
+                }
                 if (message instanceof ReadMessage) {
                     this.doRead((ReadMessage) message);
                 }
@@ -229,6 +235,38 @@ public class ServerSocketHandler extends SocketHandler {
             else {
                 reply = new ForwardedMessage(new ErrorMessage(ErrorCode.UNKNOWN, null), sourceSocketId);
                 source.send(reply);
+            }
+        }
+    }
+
+    public void simulateNetworkDelay(TestSpecs ts, Class messageClass) {
+        if (ts == null) { // if no rules are specified I am not in the test scenario, thus I add some random delays to simulate the network
+            int sleepTime = (int)(Math.random()*200);
+            //PrintHelper.printError("Sleep time: " + sleepTime + "ms");
+            try {
+                Thread.sleep(sleepTime);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            return;
+        }
+        List<DelayMessageDelivery> delays = ts.getDelays();
+        if (ts.getServerIDs().contains(server.getPeerData().getId()) || ts.getServerIDs().size() == 0) { // if I am in the list of targets (if the list is empty I am a target by default)
+            if (delays.size() != 0) { // if there are some delays in the rules
+                for (DelayMessageDelivery d : delays) {
+                    if (messageClass.equals(d.getMessageClass())) { // if the message I got is the one for which there is a delay
+                        boolean cond0 = d.isFromClient() == null; // the rule does not specify fromClient => delay to all
+                        boolean cond1 = d.isFromClient() && !server.getConnectionsToServers().containsKey(this); // the rules specify a delay from client and my connection is to a client
+                        boolean cond2 = !d.isFromClient() && server.getConnectionsToServers().containsKey(this); // the rules specify a delay from server and my connection is to a server
+                        if (cond0 || cond1 || cond2) {
+                            try {
+                                Thread.sleep(d.getDelayMillis());
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    }
+                }
             }
         }
     }

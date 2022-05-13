@@ -1,12 +1,16 @@
 package it.polimi.ds.tests;
 
 import it.polimi.ds.client.Client;
+import it.polimi.ds.messages.PersistMessage;
+import it.polimi.ds.server.Server;
+import it.polimi.ds.tests.helpers.DelayMessageDelivery;
+import it.polimi.ds.tests.helpers.TestSpecs;
 
 public class ClientTestMain {
-    private static final String FILENAME = "DS/src/config.xml";
+    private static final String FILENAME = "DS/src/it/polimi/ds/tests/config/config_test.xml";
 
     public static void main(String[] args) {
-        test4();
+        test4_1();
     }
 
     /**
@@ -97,5 +101,58 @@ public class ClientTestMain {
         }
         c1.commit();
         // t1 < t2
+    }
+
+    public static void test4_1() {
+
+        TestSpecs ts = new TestSpecs();
+        //ts.addDelay(new DelayMessageDelivery(PersistMessage.class, null, 200));
+        // ts = "all the servers have a delay of 200ms when they receive a persistMessage
+
+        ServerThread s0 = new ServerThread(0, FILENAME, ts);
+        (new Thread(s0)).start();
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        ServerThread s1 = new ServerThread(1, FILENAME, ts);
+        (new Thread(s1)).start();
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        ServerThread s2 = new ServerThread(2, FILENAME, ts);
+        (new Thread(s2)).start();
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        Client c0 = new Client(FILENAME);
+        Client c1 = new Client(FILENAME);
+
+        c0.connect(0);
+        c1.connect(1);
+
+        c1.begin();
+        c1.write(0, "primo"); // sul server 1
+
+        c0.begin();
+        c0.write(0, "secondo"); // sul server 0
+
+        c0.commit();
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        /*
+        c1.commit();
+        // t1 < t2
+
+ */
     }
 }

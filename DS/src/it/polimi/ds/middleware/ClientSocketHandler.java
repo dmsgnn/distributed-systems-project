@@ -40,7 +40,9 @@ public class ClientSocketHandler extends SocketHandler {
                             PrintHelper.printError("Commit was not possible, transaction has been aborted.");
                     }
                 } catch (EOFException e) {
-                    System.out.println("Nothing to read...");
+                    e.printStackTrace();
+                    return;
+                    //System.out.println("Nothing to read...");
                 }
             }
         } catch (SocketException e) {
