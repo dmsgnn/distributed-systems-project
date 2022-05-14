@@ -4,6 +4,8 @@ import it.polimi.ds.server.Server;
 import it.polimi.ds.tests.helpers.TestSpecs;
 
 import java.awt.*;
+import java.io.IOException;
+import java.net.ServerSocket;
 
 public class ServerThread implements Runnable{
 

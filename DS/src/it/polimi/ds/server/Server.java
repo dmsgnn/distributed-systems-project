@@ -334,7 +334,7 @@ public class Server {
                 if (commitResponses.get(message.getCommitTimestamp()) == connectionsToServers.size()) {
                     // validate and eventually persist
                     if (isWorkspaceValid(commitBuffer.get(0).getCommitMessage().getWorkspace())) {
-                        System.out.println("This workspace can be persisted! "+ commitBuffer.get(0).getCommitTimestamp());
+                        System.out.println("This workspace can be persisted! " + commitBuffer.get(0).getCommitTimestamp());
                         System.out.println(commitBuffer.get(0).getCommitMessage().getWorkspace());
                         persistTransaction(commitBuffer.get(0).getCommitMessage().getWorkspace());
                         forwardPersist();
@@ -459,5 +459,9 @@ public class Server {
 
     public TestSpecs getTestSpecs() {
         return testSpecs;
+    }
+
+    public void closeConnection() throws IOException {
+        socket.close();
     }
 }
