@@ -1,4 +1,4 @@
-package it.polimi.ds.tests;
+package it.polimi.ds.tests.helpers;
 
 import it.polimi.ds.server.Server;
 import it.polimi.ds.tests.helpers.TestSpecs;

@@ -69,9 +69,6 @@ public class ServerSocketHandler extends SocketHandler {
             while(true) {
                 Message message = (Message) in.readObject();
                 //System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
-                //int sleepTime = (int)(Math.random()*1000);
-                //PrintHelper.printError("Sleep time: " + sleepTime + "ms");
-                //Thread.sleep(sleepTime);
                 if (server.getTestSpecs() != null) {
                     simulateNetworkDelay(server.getTestSpecs(), message.getClass());
                 }
@@ -87,14 +84,12 @@ public class ServerSocketHandler extends SocketHandler {
                 }
                 else if (message instanceof BeginMessage) {
                     this.privateWorkspace = new Workspace(((BeginMessage) message).getTimestamp());
-                    //server.beginTransaction(this, ((BeginMessage) message).getTimestamp());
                 }
                 else if (message instanceof AbortMessage) {
                     this.privateWorkspace = null;
                 }
                 else if (message instanceof CommitMessage) {
                     if(((CommitMessage) message).getWorkspace() == null) {
-                        if(this.server.getPeerData().getId() == 0) Thread.sleep(200);
                         ((CommitMessage) message).setWorkspace(this.privateWorkspace);
                         server.commitTransaction((CommitMessage) message, true, this);
                     }
@@ -118,12 +113,10 @@ public class ServerSocketHandler extends SocketHandler {
                     server.abortTransaction(((AbortTransactionMessage) message).getAbortTimestamp());
                 }
                 else if(message instanceof PersistMessage) {
-                    Thread.sleep(200);
                     server.persistTransactionRequest(((PersistMessage) message).getPersistTimestamp());
                 }
                 else {
                     PrintHelper.printError("["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and has been ignored");
-                    //System.out.println("\u001B[31m" + "["+this.socket.getInetAddress().getHostAddress()+ "] An unexpected type of request has been received and has been ignored" + "\u001B[0m");
                 }
             }
         } catch (Exception e) {
@@ -256,10 +249,11 @@ public class ServerSocketHandler extends SocketHandler {
                 for (DelayMessageDelivery d : delays) {
                     if (messageClass.equals(d.getMessageClass())) { // if the message I got is the one for which there is a delay
                         boolean cond0 = d.isFromClient() == null; // the rule does not specify fromClient => delay to all
-                        boolean cond1 = d.isFromClient() && !server.getConnectionsToServers().containsKey(this); // the rules specify a delay from client and my connection is to a client
-                        boolean cond2 = !d.isFromClient() && server.getConnectionsToServers().containsKey(this); // the rules specify a delay from server and my connection is to a server
+                        boolean cond1 = d.isFromClient() && server.getSocketId(this) == -1; // the rules specify a delay from client and my connection is to a client
+                        boolean cond2 = !d.isFromClient() && server.getSocketId(this) != -1; // the rules specify a delay from server and my connection is to a server
                         if (cond0 || cond1 || cond2) {
                             try {
+                                //System.out.println("################# SERVER s" + server.getPeerData().getId() + " sleeping for " + d.getDelayMillis() + "ms! " + cond0 + " - " + cond1 + " - " + cond2 + "Source = " + server.getSocketId(this));
                                 Thread.sleep(d.getDelayMillis());
                             } catch (InterruptedException e) {
                                 throw new RuntimeException(e);

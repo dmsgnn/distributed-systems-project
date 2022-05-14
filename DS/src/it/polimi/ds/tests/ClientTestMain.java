@@ -1,16 +1,25 @@
 package it.polimi.ds.tests;
 
 import it.polimi.ds.client.Client;
+import it.polimi.ds.helpers.ConfigHelper;
+import it.polimi.ds.messages.CommitMessage;
 import it.polimi.ds.messages.PersistMessage;
-import it.polimi.ds.server.Server;
+import it.polimi.ds.messages.VoteMessage;
+import it.polimi.ds.model.Peer;
 import it.polimi.ds.tests.helpers.DelayMessageDelivery;
+import it.polimi.ds.tests.helpers.ServerThread;
 import it.polimi.ds.tests.helpers.TestSpecs;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
+import java.util.List;
 
 public class ClientTestMain {
     private static final String FILENAME = "DS/src/it/polimi/ds/tests/config/config_test.xml";
 
     public static void main(String[] args) {
-        test4_1();
+        test5();
     }
 
     /**
@@ -103,56 +112,47 @@ public class ClientTestMain {
         // t1 < t2
     }
 
-    public static void test4_1() {
+    public static void test5() {
 
         TestSpecs ts = new TestSpecs();
-        //ts.addDelay(new DelayMessageDelivery(PersistMessage.class, null, 200));
-        // ts = "all the servers have a delay of 200ms when they receive a persistMessage
+        ts.addServer(0);
+        ts.addDelay(new DelayMessageDelivery(CommitMessage.class, true, 2000));
+        // ts = "server 0 has a 200ms delay when it receives a commit from a client"
 
-        ServerThread s0 = new ServerThread(0, FILENAME, ts);
-        (new Thread(s0)).start();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        ServerThread s1 = new ServerThread(1, FILENAME, ts);
-        (new Thread(s1)).start();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        ServerThread s2 = new ServerThread(2, FILENAME, ts);
-        (new Thread(s2)).start();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
+        initializeServers(ts);
         Client c0 = new Client(FILENAME);
         Client c1 = new Client(FILENAME);
 
         c0.connect(0);
         c1.connect(1);
 
-        c1.begin();
-        c1.write(0, "primo"); // sul server 1
-
         c0.begin();
-        c0.write(0, "secondo"); // sul server 0
+        c1.begin();
+
+        c0.write(0, "first");
+        c1.write(0, "second");
 
         c0.commit();
+        c1.commit();
+    }
+
+    private static int initializeServers(TestSpecs ts) {
+        List<Peer> peerList;
         try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
+            ConfigHelper ch = new ConfigHelper(FILENAME);
+            peerList = ch.getPeerList();
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        /*
-        c1.commit();
-        // t1 < t2
-
- */
+        for (Peer p : peerList) {
+            ServerThread s = new ServerThread(p.getId(), FILENAME, ts);
+            (new Thread(s)).start();
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return peerList.size();
     }
 }

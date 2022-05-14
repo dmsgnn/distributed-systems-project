@@ -81,8 +81,34 @@ public class Server {
     }
 
     public Server(int id, String configPath, TestSpecs ts) {
-        this(id, configPath);
         this.testSpecs = ts;
+        executor = Executors.newCachedThreadPool();
+        try {
+            ConfigHelper ch = new ConfigHelper(configPath);
+            this.peers = ch.getPeerList();
+            this.R = ch.getParamR();
+            for (Peer elem : peers) {
+                if (elem.getId() == id) {
+                    this.peerData = elem;
+                    break;
+                }
+            }
+            // try to open socket
+            try {
+                socket = new ServerSocket(peerData.getPort());
+            } catch (IOException e) {
+                System.out.println("\nPort already in use!\n");
+                exit(0);
+            }
+            // initialize store
+            this.store = new Store();
+            // initialize connection with already available servers
+            initializeConnections();
+            accept();
+        } catch (Exception e) {
+            e.printStackTrace();
+            //System.exit(1);
+        }
     }
 
     /**
