@@ -18,6 +18,8 @@ public class Client {
     private List<Peer> peers; // list of available servers
     private List<Peer> peersConnected; // list of connected servers
 
+    private boolean commitOk;
+
     // sockets
     private List<SocketHandler> connections; // list of connected sockets
 
@@ -37,7 +39,7 @@ public class Client {
         // Try to create a connection with the selected peer
         try {
             Peer peer = getPeer(peerId);
-            SocketHandler s = new ClientSocketHandler(peer);
+            SocketHandler s = new ClientSocketHandler(peer, this);
             if (s.isConnected()) {
                 connections.add(s);
                 peersConnected.add(peer);
@@ -134,6 +136,7 @@ public class Client {
         }
     }
     public void commit() {
+        commitOk = false;
         // prepare the timestamp
         Timestamp ts = Timestamp.from(Instant.now());
 
@@ -150,5 +153,13 @@ public class Client {
         for (SocketHandler s : connections) {
             s.send(new AbortMessage(peersConnected));
         }
+    }
+
+    public boolean isCommitOk() {
+        return commitOk;
+    }
+
+    public void setCommitOk(boolean commitOk) {
+        this.commitOk = commitOk;
     }
 }

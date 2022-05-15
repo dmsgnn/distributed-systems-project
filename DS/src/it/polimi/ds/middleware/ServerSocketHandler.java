@@ -56,10 +56,12 @@ public class ServerSocketHandler extends SocketHandler {
      * @return true if between the receivers of the read message there is at least one server which could have the key, false otherwise
      */
     private boolean someoneShouldHaveTheKey(ArrayList<Integer> idList, int key) {
-        if(getPossibleKeyOwners(idList, key).size() == 0)
+        /*if(getPossibleKeyOwners(idList, key).size() == 0)
             return false;
         else
             return true;
+         */
+        return getPossibleKeyOwners(idList, key).size() != 0;
     }
 
     @Override
@@ -104,8 +106,9 @@ public class ServerSocketHandler extends SocketHandler {
                     handleForwardedMessage((ForwardedMessage) message);
                 }
                 else if (message instanceof VoteMessage) {
-                    boolean done = false;
+                    boolean done = server.doVote((VoteMessage) message);
                     while (!done) {
+                        Thread.sleep(250);
                         done = server.doVote((VoteMessage) message);
                     }
                 }
@@ -235,6 +238,7 @@ public class ServerSocketHandler extends SocketHandler {
     public void simulateNetworkDelay(TestSpecs ts, Class messageClass) {
         if (ts == null) { // if no rules are specified I am not in the test scenario, thus I add some random delays to simulate the network
             int sleepTime = (int)(Math.random()*200);
+            //int sleepTime = 100;
             //PrintHelper.printError("Sleep time: " + sleepTime + "ms");
             try {
                 Thread.sleep(sleepTime);
@@ -253,7 +257,7 @@ public class ServerSocketHandler extends SocketHandler {
                         boolean cond2 = !d.isFromClient() && server.getSocketId(this) != -1; // the rules specify a delay from server and my connection is to a server
                         if (cond0 || cond1 || cond2) {
                             try {
-                                //System.out.println("################# SERVER s" + server.getPeerData().getId() + " sleeping for " + d.getDelayMillis() + "ms! " + cond0 + " - " + cond1 + " - " + cond2 + "Source = " + server.getSocketId(this));
+                                System.out.println("################# SERVER s" + server.getPeerData().getId() + " sleeping for " + d.getDelayMillis() + "ms! " + cond0 + " - " + cond1 + " - " + cond2 + " Source = " + server.getSocketId(this));
                                 Thread.sleep(d.getDelayMillis());
                             } catch (InterruptedException e) {
                                 throw new RuntimeException(e);

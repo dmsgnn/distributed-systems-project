@@ -1,5 +1,6 @@
 package it.polimi.ds.middleware;
 
+import it.polimi.ds.client.Client;
 import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.messages.ErrorMessage;
 import it.polimi.ds.messages.Message;
@@ -13,8 +14,11 @@ import java.net.SocketException;
 import static java.lang.System.exit;
 
 public class ClientSocketHandler extends SocketHandler {
-    public ClientSocketHandler(Peer s) {
+    Client client;
+
+    public ClientSocketHandler(Peer s, Client client) {
         super(s);
+        this.client = client;
     }
 
     /**
@@ -34,6 +38,7 @@ public class ClientSocketHandler extends SocketHandler {
                         PrintHelper.printError((ErrorMessage) message, this.getPeer().getHost());
                     }
                     if(message instanceof OutcomeMessage){
+                        client.setCommitOk(true);
                         if(((OutcomeMessage) message).isOutcome())
                             System.out.println("Commit successful!");
                         else

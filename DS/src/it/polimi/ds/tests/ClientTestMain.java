@@ -25,9 +25,9 @@ public class ClientTestMain {
     private static ArrayList<ServerThread> threads = new ArrayList<>();
 
     public static void main(String[] args) throws IOException {
-        //test5();
+        //test3();
         //for(int i = 1; i<4; i++){
-            singleOperationStressTest((int)Math.pow(10, 7));
+            singleOperationStressTest((int)Math.pow(10, 4));
         //}
     }
 
@@ -38,13 +38,19 @@ public class ClientTestMain {
      *
      * Entrambi vanno a buon fine perché sono eseguiti su due chiavi diverse.
      */
-    private static void test1() {
+    public static void test1_1() {
+        TestSpecs ts = new TestSpecs();
+        ts.addServer(0);
+        ts.addDelay(new DelayMessageDelivery(CommitMessage.class, false, 200));
+        // ts = "server 0 has a 200ms delay when it receives a commit from a server"
+
+        initializeServers(ts);
         Client c0 = new Client(FILENAME);
+        // c0 deve fare due attempts in quanto server0 riceve prima il commit di c0 e poi quello di c1 (che ha un timestamp minore)
         Client c1 = new Client(FILENAME);
 
 
         c0.connect(0);
-        // c0 deve fare due attempts in quanto server0 riceve prima il commit di c0 e poi quello di c1 (che ha un timestamp minore)
         c1.connect(1);
 
         c1.begin();
@@ -63,15 +69,20 @@ public class ClientTestMain {
      * tentativo di commit (x+1) che fa viene messo in pausa per gestire il commit che ha ricevuto da un altro
      * server con timestamp x.
      *
-     * Solo quello a tempo x va a buon fine perché lavorano entrambi sulla stessa chiave.
+     * Solo quello a tempo x va a buon fine in quanto lavorano entrambi sulla stessa chiave.
      */
-    private static void test2() {
+    public static void test2_1() {
+        TestSpecs ts = new TestSpecs();
+        ts.addServer(0);
+        ts.addDelay(new DelayMessageDelivery(CommitMessage.class, false, 200));
+        // ts = "server 0 has a 200ms delay when it receives a commit from a server"
+
+        initializeServers(ts);
         Client c0 = new Client(FILENAME);
         Client c1 = new Client(FILENAME);
 
 
         c0.connect(0);
-        // c0 deve fare due attempts in quanto server0 riceve prima il commit di c0 e poi quello di c1 (che ha un timestamp minore)
         c1.connect(1);
 
         c1.begin();
@@ -86,6 +97,12 @@ public class ClientTestMain {
     }
 
     private static void test3() {
+        TestSpecs ts = new TestSpecs();
+        ts.addServer(0); // problem with 0
+        ts.addDelay(new DelayMessageDelivery(CommitMessage.class, true, 200));
+        // ts = "server 0 has a 200ms delay when it receives a commit from a server"
+        initializeServers(ts);
+
         Client c0 = new Client(FILENAME);
 
         c0.connect(0);
@@ -121,6 +138,18 @@ public class ClientTestMain {
         // t1 < t2
     }
 
+    /**
+     * Server 0 has 200ms delay when it receives a commit from a client.
+     * Client c0 and c1 write the same tuple.
+     * [t1] Client c0 commits at server 0.
+     * [t2] Client c1 commits at server 1.
+     *
+     * Server 1 manages the commit of c1 and asks for the vote, Server 0 hasn't yet received the commit [t1] and thus
+     *  ACKs the commit [t2].
+     * Server 0 then receives commit [t1] but cannot ask for vote.
+     * Commit [t1] is persisted and commit [t2] is then checked.
+     * Commit [t2] is aborted because it
+     */
     public static void test5() {
 
         TestSpecs ts = new TestSpecs();
@@ -149,6 +178,7 @@ public class ClientTestMain {
 
         initializeServers(null);
         Client client = new Client(FILENAME);
+        client.connect(0);
 
         int numberOfTry = 10;
 
@@ -170,14 +200,28 @@ public class ClientTestMain {
                 }
             }
             client.commit();
+            while (!client.isCommitOk()) {
+                try {
+                    Thread.sleep(5);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
             long stopTime10Ops = System.nanoTime();
             System.out.println("Test" + j + " -> " + (stopTime10Ops-startTime10Ops)/Math.pow(10, 6) );
             if (j != 0){
                 totalTime += (stopTime10Ops - startTime10Ops);
             }
         }
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         System.out.println("Duration in milliseconds of a Transaction with "+ numberOperations + " operations (average of "+ (numberOfTry-1) + " tries) -> " + totalTime/(Math.pow(10, 6) * (numberOfTry-1)));
     }
+
+    //public static void multi
 
     private static int initializeServers(TestSpecs ts) {
         List<Peer> peerList;
