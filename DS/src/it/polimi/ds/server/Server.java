@@ -40,6 +40,8 @@ public class Server {
     // this map contains a pair of timestamp (which is the one of the commit to manage) and a list of ack messages
     // (responses by all other servers related to the commit with that specific timestamp)
     private HashMap<Timestamp, Integer> commitResponses = new HashMap<>();
+    //
+    private ArrayList<Timestamp> abortBuffer = new ArrayList<>();
 
 
     public Server(int id, String configPath) {
@@ -233,6 +235,11 @@ public class Server {
         // TODO se non esiste il commit con il timestamp del commit che vogliamo abortire -> salvo l'abort in un buffer e ignoro il commit appena mi arriva
         // if I am the one with the biggest id I am elected to forward the commit and to manage replies (i.e. I am the commit manager)
         System.out.println("Commit received!");
+        // if the message's timestamp was in the abortBuffer it means that it has been aborted, therefore we skip it and remove the item from the abortBuffer
+        if(abortBuffer.contains(m.getCommitTimestamp())) {
+            abortBuffer.remove(m.getCommitTimestamp());
+            return;
+        }
         if(clientSender && (getPeerData().getId() == Collections.max(m.getIDs()))) {
             for (Peer peer : peers) {
                 if (!m.getIDs().contains(peer.getId())) {
@@ -409,10 +416,15 @@ public class Server {
     public synchronized void abortTransaction (Timestamp ts) {
         // TODO non togliamo il primo della lista ma facciamo l'abort del commitInfo con timestamp ts
         // TODO se non esiste il commit con il timestamp del commit che vogliamo abortire -> salvo l'abort in un buffer e ignoro il commit appena mi arriva
-        if(ts == commitBuffer.get(0).getCommitTimestamp())
-            dequeueCommit();
-        else
-            PrintHelper.printError("The aborted transaction is not the first in my commit buffer.");
+        // check if the commitBuffer contains the commit with timestamp ts and eventually remove it
+        for (CommitInfo elem : commitBuffer) {
+            if (elem.getCommitTimestamp().equals(ts)) {
+                dequeueCommit(elem, false);
+                return;
+            }
+        }
+        // otherwise add the abort timestamp in the abortBuffer
+        abortBuffer.add(ts);
     }
 
     public void printCommitBuffer() {
