@@ -1,5 +1,6 @@
 package it.polimi.ds.tests.helpers;
 
+import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.server.Server;
 import it.polimi.ds.tests.helpers.TestSpecs;
 
@@ -13,6 +14,8 @@ public class ServerThread implements Runnable{
     private final String configPath;
     private final TestSpecs testSpecs;
 
+    private Server server;
+
     public ServerThread(int id, String configPath, TestSpecs ts) {
         this.id = id;
         this.configPath = configPath;
@@ -21,6 +24,10 @@ public class ServerThread implements Runnable{
 
     @Override
     public void run() {
-        new Server(id, configPath, testSpecs);
+        this.server = new Server(id, configPath, testSpecs);
+    }
+
+    public Server getServer() {
+        return this.server;
     }
 }

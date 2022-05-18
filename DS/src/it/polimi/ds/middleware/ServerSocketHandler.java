@@ -46,7 +46,6 @@ public class ServerSocketHandler extends SocketHandler {
             }
         }
         System.out.println(shouldHaveTheKey);
-        System.out.println(shouldHaveTheKey);
         return shouldHaveTheKey;
     }
 

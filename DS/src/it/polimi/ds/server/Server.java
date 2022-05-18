@@ -18,7 +18,7 @@ import java.util.concurrent.Executors;
 
 import static java.lang.System.exit;
 
-public class Server {
+public class Server implements Runnable {
     private TestSpecs testSpecs;
     private int R;
     private Peer peerData; // contains peer data (id, inetAddress, port)
@@ -30,7 +30,7 @@ public class Server {
     private Map<Integer, ServerSocketHandler> connectionsToServers = new HashMap<>();
 
     private Map<ServerSocketHandler, Workspace> workspaces = new HashMap<>();
-    private final ExecutorService executor;
+    private ExecutorService executor;
 
     private Store store;
 
@@ -56,18 +56,7 @@ public class Server {
                     break;
                 }
             }
-            // try to open socket
-            try {
-                socket = new ServerSocket(peerData.getPort());
-            } catch (IOException e) {
-                System.out.println("\nPort already in use!\n");
-                exit(0);
-            }
-            // initialize store
-            this.store = new Store();
-            // initialize connection with already available servers
-            initializeConnections();
-            accept();
+            new Thread(this).start();
         } catch (Exception e) {
             e.printStackTrace();
             //System.exit(1);
@@ -83,7 +72,9 @@ public class Server {
     }
 
     public Server(int id, String configPath, TestSpecs ts) {
+        this(id, configPath);
         this.testSpecs = ts;
+        /*
         executor = Executors.newCachedThreadPool();
         try {
             ConfigHelper ch = new ConfigHelper(configPath);
@@ -110,7 +101,7 @@ public class Server {
         } catch (Exception e) {
             e.printStackTrace();
             //System.exit(1);
-        }
+        }*/
     }
 
     /**
@@ -182,12 +173,24 @@ public class Server {
         return peerData;
     }
 
+    public void setPeerData(Peer peerData) {
+        this.peerData = peerData;
+    }
+
     public List<Peer> getPeers() {
         return peers;
     }
 
+    public void setPeers(List<Peer> peers) {
+        this.peers = peers;
+    }
+
     public int getR() {
         return R;
+    }
+
+    public void setR(int R) {
+        this.R = R;
     }
 
     public Map<Integer, ServerSocketHandler> getConnectionsToServers() {
@@ -232,7 +235,6 @@ public class Server {
      *                         otherwise I save the connection to the manager.
      */
     public synchronized void commitTransaction(CommitMessage m, boolean clientSender, ServerSocketHandler sourceConnection) {
-        // TODO se non esiste il commit con il timestamp del commit che vogliamo abortire -> salvo l'abort in un buffer e ignoro il commit appena mi arriva
         System.out.println("Commit received!");
         // if the message's timestamp was in the abortBuffer it means that it has been aborted, therefore we skip it and remove the item from the abortBuffer
         if(abortBuffer.contains(m.getCommitTimestamp())) {
@@ -415,8 +417,6 @@ public class Server {
     }
 
     public synchronized void abortTransaction (Timestamp ts) {
-        // TODO non togliamo il primo della lista ma facciamo l'abort del commitInfo con timestamp ts
-        // TODO se non esiste il commit con il timestamp del commit che vogliamo abortire -> salvo l'abort in un buffer e ignoro il commit appena mi arriva
         // check if the commitBuffer contains the commit with timestamp ts and eventually remove it
         for (CommitInfo elem : commitBuffer) {
             if (elem.getCommitTimestamp().equals(ts)) {
@@ -477,5 +477,23 @@ public class Server {
 
     public void closeConnection() throws IOException {
         socket.close();
+    }
+
+    @Override
+    public void run() {
+        executor = Executors.newCachedThreadPool();
+
+        // try to open socket
+        try {
+            socket = new ServerSocket(peerData.getPort());
+        } catch (IOException e) {
+            System.out.println("\nPort already in use!\n");
+            exit(0);
+        }
+        // initialize store
+        this.store = new Store();
+        // initialize connection with already available servers
+        initializeConnections();
+        accept();
     }
 }

@@ -1,18 +1,26 @@
 package it.polimi.ds.tests;
 
+import it.polimi.ds.helpers.ConfigHelper;
 import it.polimi.ds.messages.CommitMessage;
+import it.polimi.ds.middleware.ServerSocketHandler;
+import it.polimi.ds.middleware.SocketHandler;
 import it.polimi.ds.model.CommitInfo;
 import it.polimi.ds.model.Peer;
 import it.polimi.ds.model.Tuple;
 import it.polimi.ds.model.Workspace;
 import it.polimi.ds.server.Server;
+import it.polimi.ds.tests.helpers.ServerThread;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -61,5 +69,50 @@ public class ServerTest {
         w2.put(new Tuple(3, "tre"));
 
         assertFalse(server.isWorkspaceValid(w2)); // workspace2_timestamp < store_timestamp => Workspace invalid
+    }
+
+    @Test
+    public void keyOwnersTest() throws ParserConfigurationException, IOException, SAXException {
+        List<ServerThread> sList = ClientTestMain.initializeServers(null);
+
+        assertEquals(sList.size(), new ConfigHelper("DS/src/it/polimi/ds/tests/config/config_test.xml").getPeerList().size());
+        assertNotNull(sList.get(0).getServer());
+        ServerSocketHandler sh = sList.get(0).getServer().getConnectionsToServers().get(1);
+        assertNotNull(sh);
+        int R = sList.get(0).getServer().getR();
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // no recipient has the key
+        ArrayList<Integer> recipients1 = new ArrayList<>();
+        for (int i=R; i<sList.size(); i++) {
+            recipients1.add(i);
+        }
+        int key1 = sList.size();
+        assertEquals(0, sh.getPossibleKeyOwners(recipients1, key1).size());
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // every recipient has the key
+        ArrayList<Integer> recipients2 = new ArrayList<>();
+        for (int i=0; i<sList.size(); i++) {
+            recipients2.add(i);
+        }
+        int key2 = key1;
+        assertEquals(R, sh.getPossibleKeyOwners(recipients2, key2).size());
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // one recipient has the key
+        ArrayList<Integer> recipients3 = new ArrayList<>();
+        for (int i=R; i<sList.size(); i++) {
+            recipients3.add(i);
+        }
+        recipients3.add(0);
+        int key3 = key1;
+        assertEquals(1, sh.getPossibleKeyOwners(recipients3, key3).size());
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // the list of recipients is empty
+        ArrayList<Integer> recipients4 = new ArrayList<>();
+        int key4 = key1;
+        assertEquals(0, sh.getPossibleKeyOwners(recipients4, key4).size());
     }
 }

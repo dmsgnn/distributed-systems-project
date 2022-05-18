@@ -268,7 +268,7 @@ public class ClientTestMain {
 
     //public static void multi
 
-    private static int initializeServers(TestSpecs ts) {
+    public static List<ServerThread> initializeServers(TestSpecs ts) {
         List<Peer> peerList;
         try {
             ConfigHelper ch = new ConfigHelper(FILENAME);
@@ -286,7 +286,7 @@ public class ClientTestMain {
                 throw new RuntimeException(e);
             }
         }
-        return peerList.size();
+        return threads;
     }
 
     private static void shutdownServers () throws IOException {
