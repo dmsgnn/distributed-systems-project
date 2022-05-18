@@ -2,10 +2,7 @@ package it.polimi.ds.middleware;
 
 import it.polimi.ds.client.Client;
 import it.polimi.ds.helpers.PrintHelper;
-import it.polimi.ds.messages.ErrorMessage;
-import it.polimi.ds.messages.Message;
-import it.polimi.ds.messages.OutcomeMessage;
-import it.polimi.ds.messages.ReplyMessage;
+import it.polimi.ds.messages.*;
 import it.polimi.ds.model.Peer;
 
 import java.io.*;
@@ -35,7 +32,11 @@ public class ClientSocketHandler extends SocketHandler {
                         System.out.println(((ReplyMessage) message).getValue());
                     }
                     if(message instanceof ErrorMessage) {
-                        PrintHelper.printError((ErrorMessage) message, this.getPeer().getHost());
+                        //PrintHelper.printError((ErrorMessage) message, this.getPeer().getHost());
+                    }
+                    if(message instanceof ForwardedMessage) {
+                        PrintHelper.printError("Houston abbiamo un problema");
+                        exit(0);
                     }
                     if(message instanceof OutcomeMessage){
                         client.setCommitOk(true);
@@ -48,13 +49,14 @@ public class ClientSocketHandler extends SocketHandler {
                     e.printStackTrace();
                     return;
                     //System.out.println("Nothing to read...");
+                } catch (OptionalDataException ignored) {
+                    System.out.println("Skipping control code in the buffer...");
                 }
             }
         } catch (SocketException e) {
             System.out.println("Connection closed successfully!");
         } catch(IOException | ClassNotFoundException e) {
             e.printStackTrace();
-            e.getMessage();
             PrintHelper.printError("\nServer shut down \n ");
             exit(0);
         }

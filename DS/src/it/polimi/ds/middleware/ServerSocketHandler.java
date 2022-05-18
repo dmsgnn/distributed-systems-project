@@ -228,8 +228,8 @@ public class ServerSocketHandler extends SocketHandler {
                 source.send(reply);
             }
             else {
-                reply = new ForwardedMessage(new ErrorMessage(ErrorCode.UNKNOWN, null), sourceSocketId);
-                source.send(reply);
+                //reply = new ForwardedMessage(new ErrorMessage(ErrorCode.UNKNOWN, null), sourceSocketId);
+                //this.send(reply);
             }
         }
     }

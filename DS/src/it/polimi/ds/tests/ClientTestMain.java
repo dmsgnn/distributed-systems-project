@@ -144,8 +144,8 @@ public class ClientTestMain {
      * Server 1 manages the commit of c1 and asks for the vote, Server 0 hasn't yet received the commit [t1] and thus
      *  ACKs the commit [t2].
      * Server 0 then receives commit [t1] but cannot ask for vote.
-     * Commit [t1] is persisted and commit [t2] is then checked.
-     * Commit [t2] is aborted because it
+     * Commit [t2] is persisted and commit [t1] is then checked.
+     * Commit [t1] is aborted because it arrived late and it is not valid anymore.
      */
     public static void test5() {
 
@@ -248,7 +248,7 @@ public class ClientTestMain {
             client.commit();
             while (!client.isCommitOk()) {
                 try {
-                    Thread.sleep(5);
+                    Thread.sleep(20);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -314,6 +314,11 @@ public class ClientTestMain {
             numTrans = numTransaction;
             long startTime = System.nanoTime();
             while(numTrans - openTransactions > 0){
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
                 randomNumber = rand.nextInt(50);
                 clientTarget = (randomNumber * (numTrans*numClients)) % numClients;
                 if (status.get(clientTarget)){
@@ -362,6 +367,7 @@ public class ClientTestMain {
             for(Map.Entry<Integer, Client> client : clients.entrySet()) {
                 while (!client.getValue().isCommitOk()) {
                     try {
+                        System.out.println(client.getKey() + " - waiting...");
                         Thread.sleep(5);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);

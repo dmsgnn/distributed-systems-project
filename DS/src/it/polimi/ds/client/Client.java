@@ -19,7 +19,7 @@ public class Client {
     private List<Peer> peers; // list of available servers
     private List<Peer> peersConnected; // list of connected servers
 
-    private boolean commitOk;
+    private boolean commitOk = true;
 
     // sockets
     private List<SocketHandler> connections; // list of connected sockets
@@ -64,7 +64,6 @@ public class Client {
             }
             if(target == null) {
                 PrintHelper.printError("Invalid input...");
-                return;
             }
             else {
                 target.disconnect();
