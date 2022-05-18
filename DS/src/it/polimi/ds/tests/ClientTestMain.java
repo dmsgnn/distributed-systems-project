@@ -25,7 +25,7 @@ public class ClientTestMain {
 
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
         //test6();
-        multiClientStressTest(10, 30, 1);
+        multiClientStressTest(10, 10, 1);
     }
 
     /**
@@ -298,63 +298,65 @@ public class ClientTestMain {
         // 10 tries for statistical purposes
         int numberOfTry = 10;
         int openTransactions = 0;
-        int totalOps = 0;
         int totalRead = 0;
         int totalWrite = 0;
         int totalAbort = 0;
         int totalCommit = 0;
+        int numTrans=0;
 
         Random rand = new Random();
         int randomNumber = 0;
 
         long totalTime = 0;
-        int ct;
+        int clientTarget;
 
         for(int t=0; t<numberOfTry; t++) {
-            int numTrans = numTransaction;
+            numTrans = numTransaction;
             long startTime = System.nanoTime();
             while(numTrans - openTransactions > 0){
                 randomNumber = rand.nextInt(50);
-                ct = (randomNumber * (numTrans*numClients)) % numClients;
-                if (status.get(ct)){
+                clientTarget = (randomNumber * (numTrans*numClients)) % numClients;
+                if (status.get(clientTarget)){
                     if(randomNumber > 35) { // end transaction
                         if (randomNumber % 7 == 0) {
-                            clients.get(ct).abort();
+                            clients.get(clientTarget).abort();
                             totalAbort++;
                             System.out.println("Abort executed");
                         }
                         else {
-                            clients.get(ct).commit();
+                            clients.get(clientTarget).commit();
                             totalCommit++;
                             System.out.println("Commit executed");
                         }
-                        status.put(ct, false);
+                        status.put(clientTarget, false);
                         numTrans--;
                         openTransactions--;
                     }
                     else { // do write or read
-                        totalOps++;
                         if(randomNumber % 2 == 0){ // do write
-                            clients.get(ct).write(randomNumber*numTrans +2, "test"+randomNumber);
+                            clients.get(clientTarget).write(randomNumber*numTrans +2, "test"+randomNumber);
                             totalWrite++;
                         }
                         else { // do read
+                            clients.get(clientTarget).read(randomNumber*numTrans);
                             totalRead++;
-                            clients.get(ct).read(randomNumber*numTrans);
                         }
                     }
                 }
                 else { // open transaction
-                    clients.get(ct).begin();
+                    clients.get(clientTarget).begin();
                     openTransactions++;
                     System.out.println("transaction opened");
-                    status.put(ct, true);
+                    status.put(clientTarget, true);
                 }
             }
             // close transactions still open
             for(Map.Entry<Integer, Boolean> client : status.entrySet()){
-                if(client.getValue())
+                if(client.getValue()) {
                     clients.get(client.getKey()).commit();
+                    totalCommit++;
+                    status.put(client.getKey(), false);
+                }
             }
 
             for(Map.Entry<Integer, Client> client : clients.entrySet()) {
@@ -376,11 +378,11 @@ public class ClientTestMain {
             if (t != 0){
                 totalTime += (stopTime10Ops - startTime);
             }
-            totalOps = 0;
             totalRead = 0;
             totalWrite = 0;
             totalCommit = 0;
             totalAbort = 0;
+            openTransactions=0;
         }
 
         try {
