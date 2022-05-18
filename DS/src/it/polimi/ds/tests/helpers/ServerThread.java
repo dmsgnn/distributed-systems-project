@@ -30,4 +30,8 @@ public class ServerThread implements Runnable{
     public Server getServer() {
         return this.server;
     }
+
+    public void close() throws IOException {
+        server.closeConnection();
+    }
 }

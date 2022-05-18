@@ -16,20 +16,16 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 public class ClientTestMain {
     private static final String FILENAME = "DS/src/it/polimi/ds/tests/config/config_test.xml";
 
     private static ArrayList<ServerThread> threads = new ArrayList<>();
 
-    public static void main(String[] args) throws IOException {
-        test6();
-        //for(int i = 1; i<4; i++){
-            //singleOperationStressTest((int)Math.pow(10, 4));
-        //}
+    public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
+        //test6();
+        multiClientStressTest(10, 30, 1);
     }
 
     /**
@@ -219,6 +215,11 @@ public class ClientTestMain {
             c1.commit();
     }
 
+    /**
+     * method which realize simulate the commit of a single transaction with a given number of operation in order to test the time needed
+     * @param numOps number of operation of the transaction
+     * @throws IOException
+     */
     public static void singleOperationStressTest (int numOps) throws IOException {
 
         initializeServers(null);
@@ -234,7 +235,7 @@ public class ClientTestMain {
         long totalTime = 0;
 
         for(int j=0; j<numberOfTry; j++) {
-            long startTime10Ops = System.nanoTime();
+            long startTime = System.nanoTime();
             client.begin();
             for (int i = 0; i < numberOperations; i++) {
                 if((randomNumber * i) % 2 == 0){
@@ -252,10 +253,10 @@ public class ClientTestMain {
                     throw new RuntimeException(e);
                 }
             }
-            long stopTime10Ops = System.nanoTime();
-            System.out.println("Test" + j + " -> " + (stopTime10Ops-startTime10Ops)/Math.pow(10, 6) );
+            long stopTime = System.nanoTime();
+            System.out.println("Test" + j + " -> " + (stopTime-startTime)/Math.pow(10, 6) );
             if (j != 0){
-                totalTime += (stopTime10Ops - startTime10Ops);
+                totalTime += (stopTime - startTime);
             }
         }
         try {
@@ -264,9 +265,133 @@ public class ClientTestMain {
             throw new RuntimeException(e);
         }
         System.out.println("Duration in milliseconds of a Transaction with "+ numberOperations + " operations (average of "+ (numberOfTry-1) + " tries) -> " + totalTime/(Math.pow(10, 6) * (numberOfTry-1)));
+
+        //shutdownServers();
+        //client.deleteConnections();
+
     }
 
-    //public static void multi
+
+    public static void multiClientStressTest(int numClients, int numTransaction, int numConnections) throws ParserConfigurationException, IOException, SAXException {
+        initializeServers(null);
+
+        int sz = new ConfigHelper(FILENAME).getPeerList().size();
+        if(numConnections > sz){
+            numConnections = sz;
+        }
+
+        // map of client
+        Map<Integer, Client> clients = new HashMap<>();
+        // map of status, 1 -> in transaction
+        Map<Integer, Boolean> status = new HashMap<>();
+
+        // clients creation
+        for (int j = 0; j<numClients; j++){
+            clients.put(j, new Client(FILENAME));
+            status.put(j, false);
+            //clients connection
+            for(int i=0; i<numConnections; i++){
+                clients.get(j).connect((j+1)%3);
+            }
+        }
+
+        // 10 tries for statistical purposes
+        int numberOfTry = 10;
+        int openTransactions = 0;
+        int totalOps = 0;
+        int totalRead = 0;
+        int totalWrite = 0;
+        int totalAbort = 0;
+        int totalCommit = 0;
+
+        Random rand = new Random();
+        int randomNumber = 0;
+
+        long totalTime = 0;
+        int ct;
+
+        for(int t=0; t<numberOfTry; t++) {
+            int numTrans = numTransaction;
+            long startTime = System.nanoTime();
+            while(numTrans - openTransactions > 0){
+                randomNumber = rand.nextInt(50);
+                ct = (randomNumber * (numTrans*numClients)) % numClients;
+                if (status.get(ct)){
+                    if(randomNumber > 35) { // end transaction
+                        if (randomNumber % 7 == 0) {
+                            clients.get(ct).abort();
+                            totalAbort++;
+                            System.out.println("Abort executed");
+                        }
+                        else {
+                            clients.get(ct).commit();
+                            totalCommit++;
+                            System.out.println("Commit executed");
+                        }
+                        status.put(ct, false);
+                        numTrans--;
+                        openTransactions--;
+                    }
+                    else { // do write or read
+                        totalOps++;
+                        if(randomNumber % 2 == 0){ // do write
+                            clients.get(ct).write(randomNumber*numTrans +2, "test"+randomNumber);
+                            totalWrite++;
+                        }
+                        else { // do read
+                            totalRead++;
+                            clients.get(ct).read(randomNumber*numTrans);
+                        }
+                    }
+                }
+                else { // open transaction
+                    clients.get(ct).begin();
+                    openTransactions++;
+                    System.out.println("transaction opened");
+                    status.put(ct, true);
+                }
+            }
+            // close transactions still open
+            for(Map.Entry<Integer, Boolean> client : status.entrySet()){
+                if(client.getValue())
+                    clients.get(client.getKey()).commit();
+            }
+
+            for(Map.Entry<Integer, Client> client : clients.entrySet()) {
+                while (!client.getValue().isCommitOk()) {
+                    try {
+                        Thread.sleep(5);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+            long stopTime10Ops = System.nanoTime();
+
+            System.out.println("Test" + t + " -> " + (stopTime10Ops-startTime)/Math.pow(10, 6) + " [ms]" );
+            System.out.println("Test" + t + " -> " + totalRead + " total reads");
+            System.out.println("Test" + t + " -> " + totalWrite + " total writes");
+            System.out.println("Test" + t + " -> " + totalAbort + " total aborts");
+            System.out.println("Test" + t + " -> " + totalCommit + " total commits");
+            if (t != 0){
+                totalTime += (stopTime10Ops - startTime);
+            }
+            totalOps = 0;
+            totalRead = 0;
+            totalWrite = 0;
+            totalCommit = 0;
+            totalAbort = 0;
+        }
+
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("Duration in milliseconds of a simulation with " + numTransaction + " transactions" +
+                " and " + numClients + " clients (average of "+ (numberOfTry-1) + " tries) -> " + totalTime/(Math.pow(10, 6) * (numberOfTry-1)));
+    }
 
     public static List<ServerThread> initializeServers(TestSpecs ts) {
         List<Peer> peerList;
@@ -289,7 +414,11 @@ public class ClientTestMain {
         return threads;
     }
 
+    // does not work
     private static void shutdownServers () throws IOException {
-        // TODO : need to restart the server closing sockets
+        for(ServerThread st : threads){
+            st.close();
+        }
+        threads.clear();
     }
 }

@@ -8,6 +8,7 @@ import it.polimi.ds.middleware.SocketHandler;
 import it.polimi.ds.model.Peer;
 import it.polimi.ds.model.Tuple;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -161,5 +162,11 @@ public class Client {
 
     public void setCommitOk(boolean commitOk) {
         this.commitOk = commitOk;
+    }
+
+    public void deleteConnections() throws IOException {
+        for(SocketHandler socket : connections){
+            socket.disconnect();
+        }
     }
 }

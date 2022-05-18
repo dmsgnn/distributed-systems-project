@@ -476,7 +476,15 @@ public class Server implements Runnable {
     }
 
     public void closeConnection() throws IOException {
-        socket.close();
+        for(SocketHandler sh : connections){
+            sh.disconnect();
+        }
+        for(Map.Entry<Integer, ServerSocketHandler> entry : connectionsToServers.entrySet()){
+            entry.getValue().disconnect();
+        }
+        this.socket.close();
+        Thread.currentThread().interrupt();
+        executor.shutdown();
     }
 
     @Override

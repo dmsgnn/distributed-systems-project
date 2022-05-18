@@ -59,9 +59,9 @@ public abstract class SocketHandler implements Runnable {
     }
 
     public void disconnect() throws IOException {
-        this.socket.close();
         this.in.close();
         this.out.close();
+        this.socket.close();
         Thread.currentThread().interrupt();
     }
 
