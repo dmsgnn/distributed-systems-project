@@ -2,6 +2,7 @@ package it.polimi.ds.tests;
 
 import it.polimi.ds.client.Client;
 import it.polimi.ds.helpers.ConfigHelper;
+import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.messages.AbortMessage;
 import it.polimi.ds.messages.CommitMessage;
 import it.polimi.ds.messages.PersistMessage;
@@ -25,7 +26,8 @@ public class ClientTestMain {
 
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
         //test6();
-        multiClientStressTest(10, 10, 1);
+        //multiClientStressTest(10, 10, 1);
+        multiClientStressTest();
     }
 
     /**
@@ -399,6 +401,86 @@ public class ClientTestMain {
 
         System.out.println("Duration in milliseconds of a simulation with " + numTransaction + " transactions" +
                 " and " + numClients + " clients (average of "+ (numberOfTry-1) + " tries) -> " + totalTime/(Math.pow(10, 6) * (numberOfTry-1)));
+    }
+
+    public static void multiClientStressTest() {
+        ConfigHelper ch;
+        try {
+            ch = new ConfigHelper(FILENAME);
+        } catch (Exception ignored) {
+            return;
+        }
+        int numClients = 100;
+        int numOps = 10000;
+
+        Map<Integer, Boolean> activeTransactions = new HashMap<>();
+
+        List<Client> clients = new ArrayList<>();
+        for (int i = 0; i<numClients; i++) {
+            clients.add(new Client(FILENAME));
+            clients.get(i).connect(i % ch.getParamR());
+            clients.get(i).connect((i+1) % ch.getParamR());
+            activeTransactions.put(i, false);
+        }
+        //for (int j = 0; j<numOps; j++) {
+        while(true) {
+            int clientId = (int) (Math.random() * (numClients-1));
+            if (activeTransactions.get(clientId)) {
+                int op = (int) (Math.random() * 3);
+                try {
+                    Thread.sleep(20);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                switch (op) {
+                    case 0 -> {
+                        int tmp = (int) (Math.random() * 100000);
+                        clients.get(clientId).write(tmp, "Rand" + tmp);
+                        break;
+                    }
+                    case 1 -> {
+                        int tmp = (int) (Math.random() * 100000);
+                        clients.get(clientId).read(tmp);
+                        break;
+                    }
+                    case 2 -> {
+                        activeTransactions.replace(clientId, false);
+                        clients.get(clientId).commit();
+                        break;
+                    }
+                    case 3 -> {
+                        activeTransactions.replace(clientId, false);
+                        clients.get(clientId).abort();
+                        break;
+                    }
+                }
+            }
+            else {
+                activeTransactions.replace(clientId, true);
+                clients.get(clientId).begin();
+            }
+        }
+        /*
+        for (Integer index : activeTransactions.keySet()) {
+            if (activeTransactions.get(index)) {
+                clients.get(index).commit();
+                while (!clients.get(index).isCommitOk()) {
+                    try {
+                        Thread.sleep(20);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        }
+        boolean areWeDoneYet = true;
+        for (Integer index : activeTransactions.keySet()) {
+            if(!clients.get(index).isCommitOk()) {
+                areWeDoneYet = false;
+            }
+        }
+        PrintHelper.printError("Are we done??? " + areWeDoneYet);
+        System.exit(0); */
     }
 
     public static List<ServerThread> initializeServers(TestSpecs ts) {
