@@ -233,13 +233,14 @@ public class Server {
      */
     public synchronized void commitTransaction(CommitMessage m, boolean clientSender, ServerSocketHandler sourceConnection) {
         // TODO se non esiste il commit con il timestamp del commit che vogliamo abortire -> salvo l'abort in un buffer e ignoro il commit appena mi arriva
-        // if I am the one with the biggest id I am elected to forward the commit and to manage replies (i.e. I am the commit manager)
         System.out.println("Commit received!");
         // if the message's timestamp was in the abortBuffer it means that it has been aborted, therefore we skip it and remove the item from the abortBuffer
         if(abortBuffer.contains(m.getCommitTimestamp())) {
+            PrintHelper.printError("Received commit for which I got an abort request! Discarding...");
             abortBuffer.remove(m.getCommitTimestamp());
             return;
         }
+        // if I am the one with the biggest id I am elected to forward the commit and to manage replies (i.e. I am the commit manager)
         if(clientSender && (getPeerData().getId() == Collections.max(m.getIDs()))) {
             for (Peer peer : peers) {
                 if (!m.getIDs().contains(peer.getId())) {
@@ -424,6 +425,7 @@ public class Server {
             }
         }
         // otherwise add the abort timestamp in the abortBuffer
+        PrintHelper.printError("Aborting before commit... Abort added to abortBuffer");
         abortBuffer.add(ts);
     }
 

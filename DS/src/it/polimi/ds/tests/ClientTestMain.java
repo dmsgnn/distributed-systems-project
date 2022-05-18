@@ -2,6 +2,7 @@ package it.polimi.ds.tests;
 
 import it.polimi.ds.client.Client;
 import it.polimi.ds.helpers.ConfigHelper;
+import it.polimi.ds.messages.AbortMessage;
 import it.polimi.ds.messages.CommitMessage;
 import it.polimi.ds.messages.PersistMessage;
 import it.polimi.ds.messages.VoteMessage;
@@ -25,9 +26,9 @@ public class ClientTestMain {
     private static ArrayList<ServerThread> threads = new ArrayList<>();
 
     public static void main(String[] args) throws IOException {
-        //test3();
+        test6();
         //for(int i = 1; i<4; i++){
-            singleOperationStressTest((int)Math.pow(10, 4));
+            //singleOperationStressTest((int)Math.pow(10, 4));
         //}
     }
 
@@ -172,6 +173,50 @@ public class ClientTestMain {
 
         c0.commit();
         c1.commit();
+    }
+
+    /**
+     * Clients c0 and c1 perform two commits on the same tuple not interleaved. Only the commit from c0 should be performed.
+     * c0 is connected to server s0.
+     * c1 is connected to both server s1 and s2, but connection with server s1 has some delay.
+     *
+     * While s0 and s2 are performing the abort of the transaction of c1.
+     *
+     * Server s1 has not yet received the first commit from c1, when it receives an abort message it does not yet have the commit
+     * of c1 in its commitBuffer, therefore it stores the abort in the abortBuffer until the commit from c1 is received. At such
+     * point the commit is ignored and the buffer is emptied.
+     */
+    public static void test6() {
+        TestSpecs ts = new TestSpecs();
+        ts.addServer(1);
+        ts.addDelay(new DelayMessageDelivery(CommitMessage.class, true, 200));
+        // ts = "server 0 has a 200ms delay when it receives a commit from a client"
+
+        initializeServers(ts);
+        Client c0 = new Client(FILENAME);
+        Client c1 = new Client(FILENAME);
+
+        c0.connect(0);
+        c1.connect(2);
+        c1.connect(1);
+
+        // let s0 and s2 abort the transaction
+        c0.begin();
+        c1.begin();
+        c0.write(10, "dieci");
+        c1.write(10, "ten");
+
+        c0.commit();
+        c1.commit();
+        // only 10: "dieci" should be in the storage
+
+            c0.begin();
+            c1.begin();
+            c0.write(10, "dieci");
+            c1.write(10, "ten");
+
+            c0.commit();
+            c1.commit();
     }
 
     public static void singleOperationStressTest (int numOps) throws IOException {
