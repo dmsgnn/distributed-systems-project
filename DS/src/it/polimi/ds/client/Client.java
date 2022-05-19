@@ -77,6 +77,12 @@ public class Client {
         }
     }
 
+    public void detachAll() {
+        for (Peer p : peersConnected) {
+            detach(p.getId());
+        }
+    }
+
     public List<Peer> getAvailablePeers() {
         return this.peers;
     }

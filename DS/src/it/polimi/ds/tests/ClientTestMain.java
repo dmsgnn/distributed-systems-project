@@ -410,77 +410,98 @@ public class ClientTestMain {
         } catch (Exception ignored) {
             return;
         }
-        int numClients = 100;
-        int numOps = 10000;
+        int numClients = 150;
+        int numOps = 1500;
+        int numCommits = 0;
 
         Map<Integer, Boolean> activeTransactions = new HashMap<>();
 
         List<Client> clients = new ArrayList<>();
         for (int i = 0; i<numClients; i++) {
             clients.add(new Client(FILENAME));
-            clients.get(i).connect(i % ch.getParamR());
-            clients.get(i).connect((i+1) % ch.getParamR());
+            clients.get(i).connect(i % ch.getPeerList().size());
+            clients.get(i).connect((i+1) % ch.getPeerList().size());
             activeTransactions.put(i, false);
         }
-        //for (int j = 0; j<numOps; j++) {
-        while(true) {
+        long beg = System.nanoTime();
+        for (int j = 0; j<numOps; j++) {
+        //while(true) {
             int clientId = (int) (Math.random() * (numClients-1));
             if (activeTransactions.get(clientId)) {
-                int op = (int) (Math.random() * 3);
+                int op = (int) (Math.random() * 4);
                 try {
-                    Thread.sleep(20);
+                    Thread.sleep((int) (Math.random() * 100));
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
                 switch (op) {
                     case 0 -> {
-                        int tmp = (int) (Math.random() * 100000);
+                        int tmp = (int) (Math.random() * 150);
                         clients.get(clientId).write(tmp, "Rand" + tmp);
+                        System.out.println("Write " + tmp);
                         break;
                     }
                     case 1 -> {
-                        int tmp = (int) (Math.random() * 100000);
+                        int tmp = (int) (Math.random() * 150);
                         clients.get(clientId).read(tmp);
+                        System.out.println("Read " + tmp);
                         break;
                     }
                     case 2 -> {
                         activeTransactions.replace(clientId, false);
                         clients.get(clientId).commit();
+                        System.out.println("Commit");
+                        numCommits++;
                         break;
                     }
                     case 3 -> {
                         activeTransactions.replace(clientId, false);
                         clients.get(clientId).abort();
+                        System.out.println("Abort");
                         break;
                     }
                 }
             }
             else {
-                activeTransactions.replace(clientId, true);
-                clients.get(clientId).begin();
-            }
-        }
-        /*
-        for (Integer index : activeTransactions.keySet()) {
-            if (activeTransactions.get(index)) {
-                clients.get(index).commit();
-                while (!clients.get(index).isCommitOk()) {
-                    try {
-                        Thread.sleep(20);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
+                if (clients.get(clientId).isCommitOk()) {
+                    System.out.println("Client" + clientId + "'s commit is not ok!");
+                    activeTransactions.replace(clientId, true);
+                    clients.get(clientId).begin();
+                }
+                else {
+                    j--;
                 }
             }
         }
+
+        for (Integer index : activeTransactions.keySet()) {
+            if (activeTransactions.get(index)) {
+                clients.get(index).abort();
+            }
+            while (!clients.get(index).isCommitOk()) {
+                try {
+                    Thread.sleep(20);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        long end = System.nanoTime();
         boolean areWeDoneYet = true;
         for (Integer index : activeTransactions.keySet()) {
+            if(clients.get(index).isCommitOk()) {
+                clients.get(index).detachAll();
+            }
             if(!clients.get(index).isCommitOk()) {
                 areWeDoneYet = false;
             }
         }
+        double totalTime = ((double)(end-beg))/1000000000; // seconds
         PrintHelper.printError("Are we done??? " + areWeDoneYet);
-        System.exit(0); */
+        System.out.println("Done " + numOps + " operations and " + numCommits + " commits in " + totalTime + " seconds.");
+        System.out.println("Commit throughput: " + numCommits/totalTime + " commits per second." );
+        System.out.println("Operations throughput: " + numOps/totalTime + " operations per second." );
+        System.exit(0);
     }
 
     public static List<ServerThread> initializeServers(TestSpecs ts) {
