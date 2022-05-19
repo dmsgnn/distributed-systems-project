@@ -54,7 +54,7 @@ public abstract class SocketHandler implements Runnable {
             out.flush();
         } catch (IOException e) {
             e.getMessage();
-            //e.printStackTrace();
+            e.printStackTrace();
         }
     }
 
