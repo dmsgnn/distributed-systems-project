@@ -70,9 +70,7 @@ public class ServerSocketHandler extends SocketHandler {
             while(true) {
                 Message message = (Message) in.readObject();
                 //System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
-                if (server.getTestSpecs() != null) {
-                    simulateNetworkDelay(server.getTestSpecs(), message.getClass());
-                }
+                simulateNetworkDelay(server.getTestSpecs(), message.getClass());
                 if (message instanceof ReadMessage) {
                     this.doRead((ReadMessage) message);
                 }
@@ -122,7 +120,7 @@ public class ServerSocketHandler extends SocketHandler {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
             //e.getMessage();
             try {
                 System.out.println("Closing connection with " + socket.getInetAddress().getHostAddress() + ":" + socket.getPort() + "...");
@@ -228,15 +226,15 @@ public class ServerSocketHandler extends SocketHandler {
                 source.send(reply);
             }
             else {
-                //reply = new ForwardedMessage(new ErrorMessage(ErrorCode.UNKNOWN, null), sourceSocketId);
-                //this.send(reply);
+                reply = new ForwardedMessage(new ErrorMessage(ErrorCode.UNKNOWN, null), sourceSocketId);
+                this.send(reply);
             }
         }
     }
 
     public void simulateNetworkDelay(TestSpecs ts, Class messageClass) {
         if (ts == null) { // if no rules are specified I am not in the test scenario, thus I add some random delays to simulate the network
-            int sleepTime = (int)(Math.random()*200);
+            int sleepTime = (int)(Math.random()*100);
             //int sleepTime = 100;
             //PrintHelper.printError("Sleep time: " + sleepTime + "ms");
             try {

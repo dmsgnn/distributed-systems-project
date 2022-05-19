@@ -42,6 +42,7 @@ public class Server implements Runnable {
     private HashMap<Timestamp, Integer> commitResponses = new HashMap<>();
     //
     private ArrayList<Timestamp> abortBuffer = new ArrayList<>();
+    private Map<Timestamp, VoteMessage> voteBuffer = new HashMap<>();
 
 
     public Server(int id, String configPath) {
@@ -202,7 +203,7 @@ public class Server implements Runnable {
         if(commitBuffer.size() > 0) {
             CommitInfo commitInfo = commitBuffer.get(0);
             // I have to check whether I am the manager
-            if (!connectionsToServers.values().contains((commitInfo.getCommitManager()))){
+            if (!connectionsToServers.containsValue((commitInfo.getCommitManager()))){
                 System.out.println("Managing commit " + commitInfo.getCommitTimestamp());
                 boolean isValid = isWorkspaceValid(commitInfo.getCommitMessage().getWorkspace());
                 // if for me the workspace is valid, I need to request the vote
@@ -223,6 +224,9 @@ public class Server implements Runnable {
                     dequeueCommit(true); // :)
                 }
             }
+            else if (voteBuffer.containsKey(commitBuffer.get(0).getCommitTimestamp())) {
+                doVote(voteBuffer.get(commitBuffer.get(0).getCommitTimestamp()));
+            }
         }
     }
 
@@ -240,6 +244,7 @@ public class Server implements Runnable {
         if(abortBuffer.contains(m.getCommitTimestamp())) {
             PrintHelper.printError("Received commit for which I got an abort request! Discarding...");
             abortBuffer.remove(m.getCommitTimestamp());
+            System.out.println("Size of abortBuffer: " + abortBuffer.size());
             return;
         }
         // if I am the one with the biggest id I am elected to forward the commit and to manage replies (i.e. I am the commit manager)
@@ -261,24 +266,26 @@ public class Server implements Runnable {
         }
     }
 
-    public void enqueueCommit(CommitInfo commit, boolean isManager) {
+    public synchronized void enqueueCommit(CommitInfo commit, boolean isManager) {
         if (isManager) {
             commitResponses.put(commit.getCommitTimestamp(), 0);
         }
         enqueueCommit(commit);
     }
-    public void enqueueCommit(CommitInfo commit) {
+    public synchronized void enqueueCommit(CommitInfo commit) {
         commitBuffer.add(commit);
         if(commitBuffer.size() > 1) {
             commitBuffer.sort(Comparator.comparing(CommitInfo::getCommitTimestamp));
         }
+        System.out.println(commitBuffer);
         System.out.println("Commit message with timestamp " + commit.getCommitTimestamp() + " added to buffer");
+        System.out.println("CommitBuffer size:" + commitBuffer.size());
         //System.out.println(commit.getWorkspace().toString());
-        if (commitBuffer.get(0).getCommitTimestamp().equals(commit.getCommitTimestamp())) {
+        if (commitBuffer.get(0).getCommitTimestamp().equals(commit.getCommitTimestamp())) { // if the one I just added is the first in the list
             manageNextCommit();
         }
     }
-    public CommitInfo dequeueCommit(boolean isManager) {
+    public synchronized CommitInfo dequeueCommit(boolean isManager) {
         CommitInfo removed = dequeueCommit();
         if (isManager) {
             commitResponses.remove(removed.getCommitTimestamp());
@@ -286,28 +293,33 @@ public class Server implements Runnable {
         //System.out.println("Commit message with timestamp " + removed.getCommitTimestamp() + " removed from buffer");
         return removed;
     }
-    public CommitInfo dequeueCommit() {
+    public synchronized CommitInfo dequeueCommit() {
         System.out.println("Buffer size:" + commitBuffer.size());
         CommitInfo removed = commitBuffer.remove(0);
-        if(commitBuffer.size() > 1) {
-            commitBuffer.sort(Comparator.comparing(CommitInfo::getCommitTimestamp));
-        }
+        voteBuffer.remove(removed.getCommitTimestamp());
+        if (commitBuffer.size() > 0) commitBuffer.get(0).setBeingPersisted(false);
+        System.out.println(commitBuffer);
         System.out.println("Commit message with timestamp " + removed.getCommitTimestamp() + " removed from buffer");
         manageNextCommit();
         return removed;
     }
 
-    public CommitInfo dequeueCommit(CommitInfo commitInfo, boolean isManager) {
+    public synchronized CommitInfo dequeueCommit(CommitInfo commitInfo, boolean isManager) {
         System.out.println("Buffer size:" + commitBuffer.size());
-        commitBuffer.remove(commitInfo);
-        if(commitBuffer.size() > 1) {
-            commitBuffer.sort(Comparator.comparing(CommitInfo::getCommitTimestamp));
+        if (commitBuffer.size() > 0) {
+            CommitInfo ciFirst = commitBuffer.get(0);
+            commitBuffer.remove(commitInfo);
+            voteBuffer.remove(commitInfo.getCommitTimestamp());
+            if (commitBuffer.size() > 0 && !ciFirst.equals(commitBuffer.get(0))) {
+                commitBuffer.get(0).setBeingPersisted(false);
+            }
+            System.out.println(commitBuffer);
+            System.out.println("Commit message with timestamp " + commitInfo.getCommitTimestamp() + " removed from buffer");
+            if (isManager) {
+                commitResponses.remove(commitInfo.getCommitTimestamp());
+            }
+            manageNextCommit();
         }
-        System.out.println("Commit message with timestamp " + commitInfo.getCommitTimestamp() + " removed from buffer");
-        if (isManager) {
-            commitResponses.remove(commitInfo.getCommitTimestamp());
-        }
-        manageNextCommit();
         return commitInfo;
     }
 
@@ -427,6 +439,7 @@ public class Server implements Runnable {
         // otherwise add the abort timestamp in the abortBuffer
         PrintHelper.printError("Aborting before commit... Abort added to abortBuffer");
         abortBuffer.add(ts);
+        System.out.println("Size of abortBuffer: " + abortBuffer.size());
     }
 
     public void printCommitBuffer() {
@@ -443,27 +456,26 @@ public class Server implements Runnable {
         //  - my buffer is empty
         //  - or the first element in my buffer has a greater timestamp than the commitTimestamp of the voteMessage
         // then => my commitBuffer is not up-to-date
-        //
-        // !!!!! this case can merged in the last else !!!!!
+        System.out.println("Voting for " + message.getCommitTimestamp());
+        voteBuffer.remove(message.getCommitTimestamp());
         if (commitBuffer.size() == 0
                 || commitBuffer.get(0).getCommitTimestamp().after(message.getCommitTimestamp())) {
             PrintHelper.printError("Trying to vote but commitBuffer empty. Are you trying to vote before committing?");
-            try {
-                Thread.sleep(250);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
             return false;
         }
         // if the first element in the queue is actually the one that I have to vote
         if (commitBuffer.size() > 0 && commitBuffer.get(0).getCommitTimestamp().equals(message.getCommitTimestamp())) {
             boolean isValid = isWorkspaceValid(commitBuffer.get(0).getCommitMessage().getWorkspace());
+            commitBuffer.get(0).setBeingPersisted(true);
             commitBuffer.get(0).getCommitManager().send(new AckMessage(isValid, message.getCommitTimestamp(), message.getIter()));
             return true;
         }
         else {
-            PrintHelper.printError("I got a vote request for a transaction that is not the first in my commit buffer.");
-            return true;
+            PrintHelper.printError("I got a vote request for a transaction that is not the first in my commit buffer. (" + message.getCommitTimestamp() + " " + commitBuffer.get(0).isBeingPersisted() + ")");
+            if (!commitBuffer.get(0).isBeingPersisted()) {
+                voteBuffer.put(message.getCommitTimestamp(), message);
+            }
+            return !commitBuffer.get(0).isBeingPersisted(); // if I am waiting for a persist it means that I have to wait for the result of the vote. So I return false 'cause I have to stay in the loop.
         }
     }
 
