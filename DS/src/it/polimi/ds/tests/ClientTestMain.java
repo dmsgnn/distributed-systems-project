@@ -2,7 +2,6 @@ package it.polimi.ds.tests;
 
 import it.polimi.ds.client.Client;
 import it.polimi.ds.helpers.ConfigHelper;
-import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.messages.AbortMessage;
 import it.polimi.ds.messages.CommitMessage;
 import it.polimi.ds.messages.PersistMessage;
@@ -218,7 +217,7 @@ public class ClientTestMain {
     }
 
     /**
-     * method which realize simulate the commit of a single transaction with a given number of operation in order to test the time needed
+     * method which simulates the commit of a single transaction with a given number of operation in order to test the time needed
      * @param numOps number of operation of the transaction
      * @throws IOException
      */
@@ -293,7 +292,7 @@ public class ClientTestMain {
             status.put(j, false);
             //clients connection
             for(int i=0; i<numConnections; i++){
-                clients.get(j).connect((j+1)%3);
+                clients.get(j).connect((j+1)%sz);
             }
         }
 
@@ -316,11 +315,6 @@ public class ClientTestMain {
             numTrans = numTransaction;
             long startTime = System.nanoTime();
             while(numTrans - openTransactions > 0){
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
                 randomNumber = rand.nextInt(50);
                 clientTarget = (randomNumber * (numTrans*numClients)) % numClients;
                 if (status.get(clientTarget)){
@@ -369,7 +363,6 @@ public class ClientTestMain {
             for(Map.Entry<Integer, Client> client : clients.entrySet()) {
                 while (!client.getValue().isCommitOk()) {
                     try {
-                        System.out.println(client.getKey() + " - waiting...");
                         Thread.sleep(5);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
