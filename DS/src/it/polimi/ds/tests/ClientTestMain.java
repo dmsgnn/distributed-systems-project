@@ -410,7 +410,7 @@ public class ClientTestMain {
         } catch (Exception ignored) {
             return;
         }
-        int numClients = 150;
+        int numClients = 500;
         int numOps = 1500;
         int numCommits = 0;
 
@@ -424,13 +424,13 @@ public class ClientTestMain {
             activeTransactions.put(i, false);
         }
         long beg = System.nanoTime();
-        for (int j = 0; j<numOps; j++) {
-        //while(true) {
+        //for (int j = 0; j<numOps; j++) {
+        while(true) {
             int clientId = (int) (Math.random() * (numClients-1));
             if (activeTransactions.get(clientId)) {
                 int op = (int) (Math.random() * 4);
                 try {
-                    Thread.sleep((int) (Math.random() * 100));
+                    Thread.sleep((int) (Math.random() * 20));
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -469,11 +469,11 @@ public class ClientTestMain {
                     clients.get(clientId).begin();
                 }
                 else {
-                    j--;
+                    //j--;
                 }
             }
         }
-
+/*
         for (Integer index : activeTransactions.keySet()) {
             if (activeTransactions.get(index)) {
                 clients.get(index).abort();
@@ -502,6 +502,7 @@ public class ClientTestMain {
         System.out.println("Commit throughput: " + numCommits/totalTime + " commits per second." );
         System.out.println("Operations throughput: " + numOps/totalTime + " operations per second." );
         System.exit(0);
+ */
     }
 
     public static List<ServerThread> initializeServers(TestSpecs ts) {
