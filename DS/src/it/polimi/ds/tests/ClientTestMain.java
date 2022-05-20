@@ -498,6 +498,73 @@ public class ClientTestMain {
  */
     }
 
+    /**
+     * method to test the efficiency of commit
+     * @param numClients number of clients which will do a commit
+     * @param numConnections number client-server connections for each client
+     */
+    private static void multiCommitStressTest(int numClients, int numConnections, int transactionSize) throws ParserConfigurationException, IOException, SAXException {
+
+        initializeServers(null);
+
+        int sz = new ConfigHelper(FILENAME).getPeerList().size();
+        if(numConnections > sz){
+            numConnections = sz;
+        }
+
+        // list of clients
+        ArrayList<Client> clients = new ArrayList<>();
+
+        // clients creation
+        for (int j = 0; j<numClients; j++){
+            clients.add(new Client(FILENAME));
+            //clients connection
+            for(int i=0; i<numConnections; i++){
+                clients.get(j).connect((j+1)%sz);
+            }
+            clients.get(j).begin();
+        }
+
+        Random rand = new Random();
+
+        for(int i = 0; i < transactionSize; i++){
+            for(int k = 0; k < clients.size(); k++){
+                int randomNumber = rand.nextInt(50);
+
+                if(randomNumber%2 == 0){ // write
+                    clients.get(k).write(randomNumber*k, "write"+randomNumber*k);
+                }
+                else { // read
+                    clients.get(k).read(randomNumber*k);
+                }
+
+            }
+        }
+
+        long startCommits = System.nanoTime();
+        // committing all transactions
+        for(int i = 0; i < clients.size()/2; i++){
+            clients.get(i).commit();
+            clients.get(i + clients.size()/2).commit();
+        }
+        if(clients.size()%2 != 0){
+            clients.get(clients.size()-1).commit();
+        }
+        // waiting for the outcome
+        for(int i = 0; i<clients.size(); i++){
+            while (!clients.get(i).isCommitOk()) {
+                try {
+                    Thread.sleep(5);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        long stopCommits = System.nanoTime();
+
+        System.out.println("Time needed for commit -> " + (stopCommits-startCommits)/(Math.pow(10, 6)) + " [ms]");
+    }
+
     public static List<ServerThread> initializeServers(TestSpecs ts) {
         List<Peer> peerList;
         try {
