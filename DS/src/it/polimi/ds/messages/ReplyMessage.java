@@ -19,4 +19,9 @@ public class ReplyMessage extends Message {
     public Tuple getTuple() {
         return this.tuple;
     }
+
+    @Override
+    public String toString() {
+        return "(" + this.getClass() +") " + this.tuple;
+    }
 }

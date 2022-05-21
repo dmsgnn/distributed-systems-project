@@ -10,4 +10,9 @@ public class HandshakeMessage extends Message {
     public int getServerId() {
         return id;
     }
+
+    @Override
+    public String toString() {
+        return "(" + this.getClass() +") id=" + this.id;
+    }
 }

@@ -7,6 +7,8 @@ import it.polimi.ds.model.Peer;
 
 import java.io.*;
 import java.net.SocketException;
+import java.sql.Timestamp;
+import java.time.Instant;
 
 import static java.lang.System.exit;
 
@@ -27,6 +29,7 @@ public class ClientSocketHandler extends SocketHandler {
             while (true) {
                 try {
                     Message message = (Message) in.readObject();
+                    client.addToLog(Timestamp.from(Instant.now()), message);
                     // print to test the received value
                     if(message instanceof ReplyMessage) {
                         System.out.println(((ReplyMessage) message).getValue());
@@ -58,5 +61,11 @@ public class ClientSocketHandler extends SocketHandler {
             PrintHelper.printError("\nServer shut down \n ");
             exit(0);
         }
+    }
+
+    @Override
+    public void send(Message r) {
+        client.addToLog(Timestamp.from(Instant.now()), r);
+        super.send(r);
     }
 }

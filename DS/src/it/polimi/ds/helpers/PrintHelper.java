@@ -26,4 +26,6 @@ public class PrintHelper {
         }
         printError(msg);
     }
+
+    public static void printConfirm(String msg) { System.out.println("\u001B[32m" + msg + "\u001B[0m");}
 }

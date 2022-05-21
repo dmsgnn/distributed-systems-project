@@ -12,4 +12,9 @@ public class PersistMessage extends Message{
     public Timestamp getPersistTimestamp() {
         return persistTimestamp;
     }
+
+    @Override
+    public String toString() {
+        return "(" + this.getClass() +") ts=" + this.persistTimestamp;
+    }
 }

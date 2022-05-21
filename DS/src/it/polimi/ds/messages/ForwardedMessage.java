@@ -31,4 +31,9 @@ public class ForwardedMessage extends Message {
     public void setMessage(Message message) {
         this.message = message;
     }
+
+    @Override
+    public String toString() {
+        return "(" + this.getClass() +") " + "{" + message +"}" + "sourceTs=" + this.sourceSocketId;
+    }
 }

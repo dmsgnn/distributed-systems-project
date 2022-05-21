@@ -12,4 +12,9 @@ public class AbortTransactionMessage extends Message{
     public Timestamp getAbortTimestamp() {
         return abortTimestamp;
     }
+
+    @Override
+    public String toString() {
+        return "(" + this.getClass() + ") " + abortTimestamp;
+    }
 }

@@ -51,4 +51,8 @@ public class Peer implements Serializable {
 
         return true;
     }
+
+    public String toString() {
+        return this.id + "@" + host + ":" + port;
+    }
 }

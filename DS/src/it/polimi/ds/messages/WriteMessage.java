@@ -22,4 +22,9 @@ public class WriteMessage extends Message {
     public List<Peer> getServers() {
         return peers;
     }
+
+    @Override
+    public String toString() {
+        return "(" + this.getClass() +") " + this.peers.toString() + " tuple="+tuple;
+    }
 }

@@ -11,18 +11,19 @@ import it.polimi.ds.model.Tuple;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class Client {
     // servers
     private List<Peer> peers; // list of available servers
     private List<Peer> peersConnected; // list of connected servers
 
+    Map<Timestamp, Message> log = new TreeMap<>();
     private boolean commitOk = true;
 
     // sockets
     private List<SocketHandler> connections; // list of connected sockets
+    private String name = "Client";
 
     public Client(String configPath) {
         try {
@@ -34,6 +35,11 @@ public class Client {
             e.printStackTrace();
             System.exit(1);
         }
+    }
+
+    public Client(String configPath, String name) {
+        this(configPath);
+        this.name = name;
     }
 
     public boolean connect(int peerId) {
@@ -173,5 +179,29 @@ public class Client {
         for(SocketHandler socket : connections){
             socket.disconnect();
         }
+    }
+
+    public void addToLog(Timestamp ts, Message m) {
+        this.log.put(ts, m);
+    }
+
+    public String logToString() {
+        List<Timestamp> keys = new ArrayList<Timestamp>(log.keySet());
+        //Collections.sort(keys);
+        String res = "========== " + this.name + "'s LOG ==========\n";
+        int l = res.length();
+        for (Timestamp key : keys) {
+            String keyStr = key.toString();
+            if (keyStr.length() < 29) {
+                keyStr += "0".repeat(29-keyStr.length());
+            }
+            res += "[" + keyStr + "] " + log.get(key) + "\n";
+        }
+        res +="========== END ==========" + "=".repeat(l-26) + "\n";
+        return res;
+    }
+
+    public Map<Timestamp, Message> getLog() {
+        return log;
     }
 }

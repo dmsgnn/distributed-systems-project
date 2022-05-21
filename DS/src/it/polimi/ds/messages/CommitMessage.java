@@ -51,4 +51,9 @@ public class CommitMessage extends Message {
     public void setWorkspace(Workspace w) {
         this.workspace = w;
     }
+
+    @Override
+    public String toString() {
+        return "(" + this.getClass() +") " + this.peers.toString() + ", ts="+commitTimestamp;
+    }
 }

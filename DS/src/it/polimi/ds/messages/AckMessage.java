@@ -38,4 +38,9 @@ public class AckMessage extends Message{
     public int getIter() {
         return iter;
     }
+
+    @Override
+    public String toString() {
+        return "(" + this.getClass() + ") " + "ack=" + ack + ", iter="+iter + ", commit="+commitTimestamp;
+    }
 }

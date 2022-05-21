@@ -3,10 +3,7 @@ package it.polimi.ds.tests;
 import it.polimi.ds.client.Client;
 import it.polimi.ds.helpers.ConfigHelper;
 import it.polimi.ds.helpers.PrintHelper;
-import it.polimi.ds.messages.AbortMessage;
-import it.polimi.ds.messages.CommitMessage;
-import it.polimi.ds.messages.PersistMessage;
-import it.polimi.ds.messages.VoteMessage;
+import it.polimi.ds.messages.*;
 import it.polimi.ds.model.Peer;
 import it.polimi.ds.tests.helpers.DelayMessageDelivery;
 import it.polimi.ds.tests.helpers.ServerThread;
@@ -25,9 +22,10 @@ public class ClientTestMain {
     private static ArrayList<ServerThread> threads = new ArrayList<>();
 
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
-        //test6();
+        //test5();
+        isolationTest();
         //multiClientStressTest(10, 10, 1);
-        multiClientStressTest();
+        //multiClientStressTest();
     }
 
     /**
@@ -157,8 +155,8 @@ public class ClientTestMain {
         // ts = "server 0 has a 200ms delay when it receives a commit from a client"
 
         initializeServers(ts);
-        Client c0 = new Client(FILENAME);
-        Client c1 = new Client(FILENAME);
+        Client c0 = new Client(FILENAME, "client0");
+        Client c1 = new Client(FILENAME, "client1");
 
         c0.connect(0);
         c1.connect(1);
@@ -171,6 +169,16 @@ public class ClientTestMain {
 
         c0.commit();
         c1.commit();
+
+        while(!c0.isCommitOk() || !c1.isCommitOk()) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        System.out.println(c0.logToString());
+        System.out.println(c1.logToString());
     }
 
     /**
@@ -215,6 +223,164 @@ public class ClientTestMain {
 
             c0.commit();
             c1.commit();
+    }
+
+    private static void isolationTest() {
+        initializeServers(null);
+
+        Client cBefore = new Client(FILENAME);
+        cBefore.connect(0);
+        cBefore.begin();
+        cBefore.write(1, "20");
+        cBefore.write(2, "25");
+        cBefore.commit();
+        while(!cBefore.isCommitOk()) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        Client c0 = new Client(FILENAME, "c0");
+        Client c1 = new Client(FILENAME, "c1");
+
+        c0.connect(0);
+        c1.connect(0);
+        //////////////////////////
+        // Dirty reads
+        //////////////////////////
+        c0.begin();
+                        c1.begin();
+        c0.read(1);
+        wait(1000);
+                        c1.write(1, "21");
+        wait(1000);
+        c0.read(1);
+        wait(1000);
+                        c1.abort();
+        c0.abort();
+        while (!c1.isCommitOk() || !c0.isCommitOk()) {
+            wait(100);
+        }
+        Map<Timestamp, Message> c0log = c0.getLog();
+        for(Message m : c0log.values()) {
+            if (m instanceof ReplyMessage) {
+                if(((ReplyMessage) m).getValue().equals("21")) {
+                    PrintHelper.printError("Dirty read!");
+                    System.out.println(c0.logToString());
+                    System.out.println(c1.logToString());
+                    System.exit(0);
+                }
+            }
+        }
+        //////////////////////////
+        // Non-repeatable read
+        //////////////////////////
+        c0.begin();
+                        c1.begin();
+        c0.read(1);
+        wait(1000);
+                        c1.write(1, "22");
+                        c1.commit();
+        while (!c1.isCommitOk()) {
+            wait(100);
+        }
+        c0.read(1);
+        wait(1000);
+        c0.commit();
+        while (!c0.isCommitOk()) {
+            wait(100);
+        }
+        boolean read22 = false;
+        for(Message m : c0log.values()) {
+            if (m instanceof ReplyMessage) {
+                if(((ReplyMessage) m).getValue().equals("22")) {
+                    read22 = true;
+                }
+            }
+            else if(m instanceof OutcomeMessage && read22) {
+                if(((OutcomeMessage) m).isOutcome()) {
+                    PrintHelper.printError("Non-repeatable read!");
+                    System.out.println(c0.logToString());
+                    System.out.println(c1.logToString());
+                    System.exit(0);
+                }
+            }
+        }
+        //////////////////////////
+        // Lost updates
+        //////////////////////////
+        c0.begin();
+                        c1.begin();
+        c0.read(1);
+        wait(1000);
+                        c1.read(1);
+                        wait(1000);
+                        c1.write(1, "50");
+        wait(1000);
+        c0.write(1, "100");
+        wait(1000);
+        c0.commit();
+        while (!c0.isCommitOk()) {
+            wait(100);
+        }
+                        c1.commit();
+        while (!c1.isCommitOk()) {
+            wait(100);
+        }
+        Map<Timestamp, Message> c1log = c1.getLog();
+        int count = 0;
+        for(Message m : c1log.values()) {
+            if (m instanceof OutcomeMessage) {
+                count++;
+                if (((OutcomeMessage) m).isOutcome() && count == 2){
+                    PrintHelper.printError("Lost update!");
+                    System.out.println(c0.logToString());
+                    System.out.println(c1.logToString());
+                    System.exit(0);
+                }
+            }
+        }
+        //////////////////////////
+        // Phantom reads
+        //////////////////////////
+        c0.begin();
+                        c1.begin();
+        c0.read(3);
+        wait(1000);
+                        c1.write(3, "ghost");
+                        c1.commit();
+        while (!c1.isCommitOk()) {
+            wait(100);
+        }
+        wait(1000);
+        c0.read(3);
+        wait(1000);
+        c0.commit();
+        while (!c0.isCommitOk()) {
+            wait(100);
+        }
+        boolean readGhost = false;
+        for(Message m : c0log.values()) {
+            if (m instanceof ReplyMessage) {
+                if(((ReplyMessage) m).getValue().equals("ghost")) {
+                    readGhost = true;
+                }
+            }
+            else if(m instanceof OutcomeMessage && readGhost) {
+                if(((OutcomeMessage) m).isOutcome()) {
+                    PrintHelper.printError("Phantom read!");
+                    System.out.println(c0.logToString());
+                    System.out.println(c1.logToString());
+                    System.exit(0);
+                }
+            }
+        }
+        System.out.println(c0.logToString());
+        System.out.println(c1.logToString());
+        PrintHelper.printConfirm("Test OK.");
+        System.exit(0);
     }
 
     /**
@@ -615,5 +781,13 @@ public class ClientTestMain {
             st.close();
         }
         threads.clear();
+    }
+
+    private static void wait(int millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

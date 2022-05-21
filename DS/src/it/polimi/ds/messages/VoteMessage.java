@@ -18,4 +18,9 @@ public class VoteMessage extends Message {
     public int getIter() {
         return iter;
     }
+
+    @Override
+    public String toString() {
+        return "(" + this.getClass() + ") iter="+iter + ", commit="+commitTimestamp;
+    }
 }

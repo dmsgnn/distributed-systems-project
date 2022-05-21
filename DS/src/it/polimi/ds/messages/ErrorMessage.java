@@ -19,4 +19,9 @@ public class ErrorMessage extends Message {
     public Object getArgument() {
         return arg;
     }
+
+    @Override
+    public String toString() {
+        return "(" + this.getClass() +") " + "code=" + this.code + ", arg=`" + arg + "`";
+    }
 }

@@ -11,4 +11,9 @@ public class OutcomeMessage extends Message{
     public boolean isOutcome() {
         return outcome;
     }
+
+    @Override
+    public String toString() {
+        return "(" + this.getClass() +") outcome=" + this.outcome;
+    }
 }
