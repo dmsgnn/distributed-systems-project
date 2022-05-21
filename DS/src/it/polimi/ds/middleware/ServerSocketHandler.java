@@ -120,7 +120,7 @@ public class ServerSocketHandler extends SocketHandler {
                 }
             }
         } catch (Exception e) {
-            //e.printStackTrace();
+            e.printStackTrace();
             //e.getMessage();
             try {
                 System.out.println("Closing connection with " + socket.getInetAddress().getHostAddress() + ":" + socket.getPort() + "...");

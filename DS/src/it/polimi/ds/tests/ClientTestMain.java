@@ -2,6 +2,7 @@ package it.polimi.ds.tests;
 
 import it.polimi.ds.client.Client;
 import it.polimi.ds.helpers.ConfigHelper;
+import it.polimi.ds.helpers.PrintHelper;
 import it.polimi.ds.messages.AbortMessage;
 import it.polimi.ds.messages.CommitMessage;
 import it.polimi.ds.messages.PersistMessage;
@@ -404,7 +405,7 @@ public class ClientTestMain {
             return;
         }
         int numClients = 500;
-        int numOps = 1500;
+        int numOps = 100000;
         int numCommits = 0;
 
         Map<Integer, Boolean> activeTransactions = new HashMap<>();
@@ -417,10 +418,31 @@ public class ClientTestMain {
             activeTransactions.put(i, false);
         }
         long beg = System.nanoTime();
-        //for (int j = 0; j<numOps; j++) {
-        while(true) {
+        for (int j = 0; j<numOps; j++) {
             int clientId = (int) (Math.random() * (numClients-1));
             if (activeTransactions.get(clientId)) {
+                if (j % 10 == 0) {
+                    try {
+                        Thread.sleep((int) (Math.random() * 500));
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                if (j % 100 == 0) {
+                    try {
+                        Thread.sleep((int) (Math.random() * 2000) + 1000 );
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                if (j % 1000 == 0) {
+                    try {
+                        Thread.sleep((int) (Math.random() * 3000) + 2000 );
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                System.out.print(j + ": ");
                 int op = (int) (Math.random() * 4);
                 try {
                     Thread.sleep((int) (Math.random() * 20));
@@ -429,13 +451,13 @@ public class ClientTestMain {
                 }
                 switch (op) {
                     case 0 -> {
-                        int tmp = (int) (Math.random() * 150);
+                        int tmp = (int) (Math.random() * j/10);
                         clients.get(clientId).write(tmp, "Rand" + tmp);
                         System.out.println("Write " + tmp);
                         break;
                     }
                     case 1 -> {
-                        int tmp = (int) (Math.random() * 150);
+                        int tmp = (int) (Math.random() * j/10);
                         clients.get(clientId).read(tmp);
                         System.out.println("Read " + tmp);
                         break;
@@ -462,14 +484,15 @@ public class ClientTestMain {
                     clients.get(clientId).begin();
                 }
                 else {
-                    //j--;
+                    j--;
                 }
             }
         }
-/*
+
         for (Integer index : activeTransactions.keySet()) {
             if (activeTransactions.get(index)) {
                 clients.get(index).abort();
+                numOps++;
             }
             while (!clients.get(index).isCommitOk()) {
                 try {
@@ -495,7 +518,7 @@ public class ClientTestMain {
         System.out.println("Commit throughput: " + numCommits/totalTime + " commits per second." );
         System.out.println("Operations throughput: " + numOps/totalTime + " operations per second." );
         System.exit(0);
- */
+
     }
 
     /**

@@ -348,7 +348,7 @@ public class Server implements Runnable {
             System.out.println("Positive ack");
             // if the first commit in the buffer is actually the one that got acknowledged
             // and the first commit in the buffer has the same iter number as the one in the ack
-            if(commitBuffer.get(0).getCommitTimestamp().equals(message.getCommitTimestamp())
+            if(commitBuffer.size() > 0 && commitBuffer.get(0).getCommitTimestamp().equals(message.getCommitTimestamp())
                     && commitBuffer.get(0).getIter() == message.getIter()) {
                 // add it to the list of acks
                 commitResponses.replace(message.getCommitTimestamp(), commitResponses.get(message.getCommitTimestamp()) + 1);
