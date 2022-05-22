@@ -12,8 +12,10 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.temporal.TemporalUnit;
 import java.util.*;
 
 public class ClientTestMain {
@@ -23,7 +25,8 @@ public class ClientTestMain {
 
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
         //test5();
-        isolationTest();
+        //isolationTest();
+        sequentialityTest();
         //multiClientStressTest(10, 10, 1);
         //multiClientStressTest();
     }
@@ -381,6 +384,110 @@ public class ClientTestMain {
         System.out.println(c1.logToString());
         PrintHelper.printConfirm("Test OK.");
         System.exit(0);
+    }
+
+    public static void sequentialityTest() {
+        initializeServers(null);
+
+        // initiate a couple of transactions to populate the server's commitBuffers
+        Client c00 = new Client(FILENAME, "c00");
+        Client c01 = new Client(FILENAME, "c01");
+        c00.connect(0);
+        c01.connect(0);
+        c00.begin();
+        c01.begin();
+        c00.read(10);
+        c01.read(11);
+        c01.commit();
+        c00.commit();
+
+        // create the time instants used for the test
+        Instant now = Instant.now();
+        Timestamp ts0 = Timestamp.from(now);
+        Timestamp ts1 = Timestamp.from(now.plusMillis(100));
+        Timestamp ts2 = Timestamp.from(now.plusMillis(200));
+        Timestamp ts3 = Timestamp.from(now.plusMillis(300));
+
+        // create the 4 processes
+        Client c1 = new Client(FILENAME, "Client 0"); c1.connect(0); // W(0)"a"
+        Client c2 = new Client(FILENAME, "Client 1"); c2.connect(0);// W(0)"b"
+        Client c3 = new Client(FILENAME, "Client 2"); c3.connect(0);// R(0)"b", R(0)"a"
+        Client c4 = new Client(FILENAME, "Client 3"); c4.connect(0);// R(0)"b", R(0)"a"
+
+        c1.begin(ts3);
+        c1.write(0, "a");
+        c1.commit(ts3);
+
+        c2.begin(ts0);
+        c2.write(0, "b");
+        c2.commit(ts0);
+
+        while(!c2.isCommitOk()) {
+            wait(5);
+        }
+
+        c3.begin(ts1);
+        c3.read(0);
+        c3.commit(ts1);
+
+        c4.begin(ts2);
+        c4.read(0);
+        c4.commit(ts2);
+
+        while(!c1.isCommitOk()) {
+            wait(5);
+        }
+
+        c3.begin();
+        c3.read(0);
+        c3.commit();
+
+        c4.begin();
+        c4.read(0);
+        c4.commit();
+
+        while (!c3.isCommitOk() || !c4.isCommitOk()) {
+            wait(1000);
+        }
+
+        int aPos3 = 0;
+        int bPos3 = 0;
+        int i=0;
+        for(Message m : c3.getLog().values()) {
+            if(m instanceof ReplyMessage) {
+                if (((ReplyMessage) m).getValue().equals("a")) {
+                    aPos3 = i;
+                }
+                else if (((ReplyMessage) m).getValue().equals("b")) {
+                    bPos3 = i;
+                }
+            }
+            i++;
+        }
+        int aPos4 = 0;
+        int bPos4 = 0;
+        int j=0;
+        for(Message m : c4.getLog().values()) {
+            if(m instanceof ReplyMessage) {
+                if (((ReplyMessage) m).getValue().equals("a")) {
+                    aPos4 = j;
+                }
+                else if (((ReplyMessage) m).getValue().equals("b")) {
+                    bPos4 = j;
+                }
+            }
+            j++;
+        }
+
+        if ((aPos3 < bPos3 && aPos4 < bPos4) || (aPos3 > bPos3 && aPos4 > bPos4)) { // if a comes always before b or vice-versa
+            PrintHelper.printConfirm("Test OK.");
+        }
+        else {
+            PrintHelper.printError("Not consistent data!");
+        }
+
+        System.out.println(c3.logToString());
+        System.out.println(c4.logToString());
     }
 
     /**

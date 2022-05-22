@@ -140,18 +140,25 @@ public class Client {
     public void begin() {
         // prepare the timestamp
         Timestamp ts = Timestamp.from(Instant.now());
+        begin(ts);
+    }
 
+    public void begin(Timestamp ts) {
         // send the request to all peers connected containing the list of peers to
         // which the request is sent, for coordination reasons
         for (SocketHandler s : connections) {
             s.send(new BeginMessage(ts, peersConnected));
         }
     }
+
     public void commit() {
-        commitOk = false;
         // prepare the timestamp
         Timestamp ts = Timestamp.from(Instant.now());
+        commit(ts);
+    }
 
+    public void commit(Timestamp ts) {
+        commitOk = false;
         // send the request to all peers connected containing the list of peers to
         // which the request is sent, for coordination reasons
         for (SocketHandler s : connections) {
