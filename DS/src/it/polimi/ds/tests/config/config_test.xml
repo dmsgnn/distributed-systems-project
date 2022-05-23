@@ -6,32 +6,32 @@
     <peers>
         <peer>
             <id>0</id>
-            <host>192.168.178.41</host>
-            <port>4000</port>
+            <host>192.168.178.32</host>
+            <port>5000</port>
         </peer>
         <peer>
             <id>1</id>
-            <host>192.168.178.41</host>
+            <host>192.168.178.32</host>
             <port>4100</port>
         </peer>
         <peer>
             <id>2</id>
-            <host>192.168.178.41</host>
+            <host>192.168.178.32</host>
             <port>4200</port>
         </peer>
         <peer>
             <id>3</id>
-            <host>192.168.178.41</host>
+            <host>192.168.178.32</host>
             <port>4300</port>
         </peer>
         <peer>
             <id>4</id>
-            <host>192.168.178.41</host>
+            <host>192.168.178.32</host>
             <port>4400</port>
         </peer>
         <peer>
             <id>5</id>
-            <host>192.168.178.41</host>
+            <host>192.168.178.32</host>
             <port>4500</port>
         </peer>
     </peers>

@@ -50,12 +50,13 @@ public class ClientSocketHandler extends SocketHandler {
                     }
                 } catch (EOFException e) {
                     e.printStackTrace();
-                    return;
+                    exit(0);
                     //System.out.println("Nothing to read...");
                 }
             }
         } catch (SocketException e) {
             System.out.println("Connection closed successfully!");
+            exit(0);
         } catch(IOException | ClassNotFoundException e) {
             e.printStackTrace();
             PrintHelper.printError("\nServer shut down \n ");

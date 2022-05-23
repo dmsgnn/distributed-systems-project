@@ -8,6 +8,8 @@ import it.polimi.ds.middleware.SocketHandler;
 import it.polimi.ds.model.*;
 import it.polimi.ds.tests.helpers.TestSpecs;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -33,6 +35,8 @@ public class Server implements Runnable {
     private ExecutorService executor;
 
     private Store store;
+
+    Map<Timestamp, Message> log = new TreeMap<>();
 
     // commit attributes
     // this arraylist is the buffer which contains the commit received, ordered by commit timestamp -> the element in the first position is the older one
@@ -213,6 +217,7 @@ public class Server implements Runnable {
                     commitResponses.replace(commitInfo.getCommitTimestamp(), 0);
                     System.out.println("Request vote for "+commitInfo.getCommitTimestamp() + "... (attempt #" + commitInfo.getIter()+")");
                     for (SocketHandler connection : connectionsToServers.values()) {
+                        System.out.println("Sending vote request " + commitInfo.getCommitTimestamp() + " to " + getSocketId(connection));
                         connection.send(new VoteMessage(commitInfo.getCommitTimestamp(), commitInfo.getIter()));
                     }
                 }
@@ -297,7 +302,7 @@ public class Server implements Runnable {
         System.out.println("Buffer size:" + commitBuffer.size());
         CommitInfo removed = commitBuffer.remove(0);
         voteBuffer.remove(removed.getCommitTimestamp());
-        if (commitBuffer.size() > 0) commitBuffer.get(0).setBeingPersisted(false);
+        //if (commitBuffer.size() > 0) commitBuffer.get(0).setBeingPersisted(false);
         System.out.println(commitBuffer);
         System.out.println("Commit message with timestamp " + removed.getCommitTimestamp() + " removed from buffer");
         manageNextCommit();
@@ -307,12 +312,12 @@ public class Server implements Runnable {
     public synchronized CommitInfo dequeueCommit(CommitInfo commitInfo, boolean isManager) {
         System.out.println("Buffer size:" + commitBuffer.size());
         if (commitBuffer.size() > 0) {
-            CommitInfo ciFirst = commitBuffer.get(0);
+            //CommitInfo ciFirst = commitBuffer.get(0);
             commitBuffer.remove(commitInfo);
             voteBuffer.remove(commitInfo.getCommitTimestamp());
-            if (commitBuffer.size() > 0 && !ciFirst.equals(commitBuffer.get(0))) {
-                commitBuffer.get(0).setBeingPersisted(false);
-            }
+            //if (commitBuffer.size() > 0 && !ciFirst.equals(commitBuffer.get(0))) {
+                //commitBuffer.get(0).setBeingPersisted(false);
+            //}
             System.out.println(commitBuffer);
             System.out.println("Commit message with timestamp " + commitInfo.getCommitTimestamp() + " removed from buffer");
             if (isManager) {
@@ -450,7 +455,7 @@ public class Server implements Runnable {
         System.out.println("\n");
     }
 
-    public synchronized boolean doVote(VoteMessage message) {
+    public synchronized void doVote(VoteMessage message) {
         // somebody asked me to vote
         // if:
         //  - my buffer is empty
@@ -461,21 +466,20 @@ public class Server implements Runnable {
         if (commitBuffer.size() == 0
                 || commitBuffer.get(0).getCommitTimestamp().after(message.getCommitTimestamp())) {
             PrintHelper.printError("Trying to vote but commitBuffer empty. Are you trying to vote before committing?");
-            return false;
+            voteBuffer.put(message.getCommitTimestamp(), message); // if the attempt is the second
+            //return false;
         }
         // if the first element in the queue is actually the one that I have to vote
         if (commitBuffer.size() > 0 && commitBuffer.get(0).getCommitTimestamp().equals(message.getCommitTimestamp())) {
             boolean isValid = isWorkspaceValid(commitBuffer.get(0).getCommitMessage().getWorkspace());
-            commitBuffer.get(0).setBeingPersisted(true);
+            //commitBuffer.get(0).setBeingPersisted(true);
             commitBuffer.get(0).getCommitManager().send(new AckMessage(isValid, message.getCommitTimestamp(), message.getIter()));
-            return true;
+            //return true;
         }
         else {
-            PrintHelper.printError("I got a vote request for a transaction that is not the first in my commit buffer. (" + message.getCommitTimestamp() + " " + commitBuffer.get(0).isBeingPersisted() + ")");
-            if (!commitBuffer.get(0).isBeingPersisted()) {
-                voteBuffer.put(message.getCommitTimestamp(), message);
-            }
-            return !commitBuffer.get(0).isBeingPersisted(); // if I am waiting for a persist it means that I have to wait for the result of the vote. So I return false 'cause I have to stay in the loop.
+            PrintHelper.printError("I got a vote request for a transaction that is not the first in my commit buffer. (" + message.getCommitTimestamp() + ")");
+            voteBuffer.put(message.getCommitTimestamp(), message); // if the attempt is the second
+            //return !commitBuffer.get(0).isBeingPersisted(); // if I am waiting for a persist it means that I have to wait for the result of the vote. So I return false 'cause I have to stay in the loop.
         }
     }
 
@@ -502,7 +506,19 @@ public class Server implements Runnable {
     @Override
     public void run() {
         executor = Executors.newCachedThreadPool();
-
+        Server server = this;
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                FileWriter myWriter = new FileWriter("logs/server_"+server.getPeerData().getId()+".txt");
+                myWriter.write(server.logToString());
+                myWriter.close();
+                System.out.println("Successfully wrote to the file.");
+            } catch (IOException e) {
+                System.out.println("An error occurred.");
+                e.printStackTrace();
+            }
+            exit(0);
+        }));
         // try to open socket
         try {
             socket = new ServerSocket(peerData.getPort());
@@ -515,5 +531,29 @@ public class Server implements Runnable {
         // initialize connection with already available servers
         initializeConnections();
         accept();
+    }
+
+    public void addToLog(Timestamp ts, Message m) {
+        this.log.put(ts, m);
+    }
+
+    public String logToString() {
+        List<Timestamp> keys = new ArrayList<Timestamp>(log.keySet());
+        //Collections.sort(keys);
+        String res = "========== SERVER_" + this.getPeerData().getId() + "'s LOG ==========\n";
+        int l = res.length();
+        for (Timestamp key : keys) {
+            String keyStr = key.toString();
+            if (keyStr.length() < 29) {
+                keyStr += "0".repeat(29-keyStr.length());
+            }
+            res += "[" + keyStr + "] " + log.get(key) + "\n";
+        }
+        res +="========== END ==========" + "=".repeat(l-26) + "\n";
+        return res;
+    }
+
+    public Map<Timestamp, Message> getLog() {
+        return log;
     }
 }

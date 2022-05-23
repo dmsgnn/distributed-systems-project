@@ -33,6 +33,7 @@ public class ServerMain {
         else
             id = 0;
 
+
         new Server(id, FILENAME);
         //server.startServer();
     }

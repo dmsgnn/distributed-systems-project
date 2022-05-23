@@ -12,7 +12,9 @@ import it.polimi.ds.tests.helpers.TestSpecs;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -65,12 +67,13 @@ public class ServerSocketHandler extends SocketHandler {
 
     @Override
     public void run() {
-// TODO: using strings for errors is not good, it would be better doing an error enumeration
+    // TODO: using strings for errors is not good, it would be better doing an error enumeration
         try {
             while(true) {
                 Message message = (Message) in.readObject();
                 //System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
                 simulateNetworkDelay(server.getTestSpecs(), message.getClass());
+                server.addToLog(Timestamp.from(Instant.now()), new LogMessage(message, false));
                 if (message instanceof ReadMessage) {
                     this.doRead((ReadMessage) message);
                 }
@@ -103,11 +106,11 @@ public class ServerSocketHandler extends SocketHandler {
                     handleForwardedMessage((ForwardedMessage) message);
                 }
                 else if (message instanceof VoteMessage) {
-                    boolean done = server.doVote((VoteMessage) message);
-                    while (!done) {
-                        Thread.sleep(250);
-                        done = server.doVote((VoteMessage) message);
-                    }
+                    //boolean done = server.doVote((VoteMessage) message);
+                    //while (!done) {
+                        //Thread.sleep(500);
+                        server.doVote((VoteMessage) message);
+                    //}
                 }
                 else if(message instanceof AbortTransactionMessage){
                     server.abortTransaction(((AbortTransactionMessage) message).getAbortTimestamp());
@@ -264,5 +267,11 @@ public class ServerSocketHandler extends SocketHandler {
                 }
             }
         }
+    }
+
+    @Override
+    public void send(Message m) {
+        server.addToLog(Timestamp.from(Instant.now()), new LogMessage(m, true));
+        super.send(m);
     }
 }

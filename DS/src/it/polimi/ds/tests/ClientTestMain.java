@@ -26,9 +26,9 @@ public class ClientTestMain {
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
         //test5();
         //isolationTest();
-        sequentialityTest();
+        //sequentialityTest();
         //multiClientStressTest(10, 10, 1);
-        //multiClientStressTest();
+        multiClientStressTest();
     }
 
     /**
@@ -678,7 +678,7 @@ public class ClientTestMain {
             return;
         }
         int numClients = 500;
-        int numOps = 100000;
+        int numOps = 5000;
         int numCommits = 0;
 
         Map<Integer, Boolean> activeTransactions = new HashMap<>();
