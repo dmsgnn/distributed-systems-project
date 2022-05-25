@@ -510,7 +510,7 @@ public class Server implements Runnable {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 FileWriter myWriter = new FileWriter("logs/server_"+server.getPeerData().getId()+".txt");
-                myWriter.write(server.logToString());
+                //myWriter.write(server.logToString());
                 myWriter.close();
                 System.out.println("Successfully wrote to the file.");
             } catch (IOException e) {
@@ -533,7 +533,7 @@ public class Server implements Runnable {
         accept();
     }
 
-    public void addToLog(Timestamp ts, Message m) {
+    public synchronized void addToLog(Timestamp ts, Message m) {
         this.log.put(ts, m);
     }
 

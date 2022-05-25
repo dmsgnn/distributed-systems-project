@@ -677,8 +677,8 @@ public class ClientTestMain {
         } catch (Exception ignored) {
             return;
         }
-        int numClients = 500;
-        int numOps = 5000;
+        int numClients = 50;
+        int numOps = 1000;
         int numCommits = 0;
 
         Map<Integer, Boolean> activeTransactions = new HashMap<>();
@@ -790,8 +790,7 @@ public class ClientTestMain {
         System.out.println("Done " + numOps + " operations and " + numCommits + " commits in " + totalTime + " seconds.");
         System.out.println("Commit throughput: " + numCommits/totalTime + " commits per second." );
         System.out.println("Operations throughput: " + numOps/totalTime + " operations per second." );
-        System.exit(0);
-
+        //System.exit(0);
     }
 
     /**

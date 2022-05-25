@@ -32,8 +32,8 @@ public class Client {
             peersConnected = new ArrayList<Peer>();
             connections = new ArrayList<SocketHandler>();
         } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(1);
+            //e.printStackTrace();
+            //System.exit(1);
         }
     }
 
