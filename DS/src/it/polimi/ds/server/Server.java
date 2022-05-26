@@ -507,7 +507,7 @@ public class Server implements Runnable {
     public void run() {
         executor = Executors.newCachedThreadPool();
         Server server = this;
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        /*Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 FileWriter myWriter = new FileWriter("logs/server_"+server.getPeerData().getId()+".txt");
                 //myWriter.write(server.logToString());
@@ -518,7 +518,7 @@ public class Server implements Runnable {
                 e.printStackTrace();
             }
             exit(0);
-        }));
+        }));*/
         // try to open socket
         try {
             socket = new ServerSocket(peerData.getPort());
