@@ -355,8 +355,14 @@ public class Server implements Runnable {
             // and the first commit in the buffer has the same iter number as the one in the ack
             if(commitBuffer.size() > 0 && commitBuffer.get(0).getCommitTimestamp().equals(message.getCommitTimestamp())
                     && commitBuffer.get(0).getIter() == message.getIter()) {
-                // add it to the list of acks
-                commitResponses.replace(message.getCommitTimestamp(), commitResponses.get(message.getCommitTimestamp()) + 1);
+                // add it to the list of acks if present
+                if (commitResponses.containsKey(message.getCommitTimestamp())) {
+                    commitResponses.replace(message.getCommitTimestamp(), commitResponses.get(message.getCommitTimestamp()) + 1);
+                }
+                else {
+                    return; // ignore the ack
+                    // it can also be that I received an abort, I have removed the item from the commitResponses but not yet from the commitBuffer so the latter case is ignored.
+                }
                 // if the size of the list of acks is the same as the size of the list of connections to servers
                 if (commitResponses.get(message.getCommitTimestamp()) == connectionsToServers.size()) {
                     // validate and eventually persist

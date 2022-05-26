@@ -27,8 +27,8 @@ public class ClientTestMain {
         //test5();
         //isolationTest();
         //sequentialityTest();
-        //multiClientStressTest(10, 10, 1);
-        multiClientStressTest();
+        multiCommitStressTest(1000, 2, 2);
+        //multiClientStressTest();
     }
 
     /**
@@ -815,7 +815,7 @@ public class ClientTestMain {
             clients.add(new Client(FILENAME));
             //clients connection
             for(int i=0; i<numConnections; i++){
-                clients.get(j).connect((j+1)%sz);
+                clients.get(j).connect((j+i)%sz);
             }
             clients.get(j).begin();
         }
@@ -832,7 +832,7 @@ public class ClientTestMain {
                 else { // read
                     clients.get(k).read(randomNumber*k);
                 }
-
+                wait(50);
             }
         }
 
@@ -849,6 +849,7 @@ public class ClientTestMain {
         for(int i = 0; i<clients.size(); i++){
             while (!clients.get(i).isCommitOk()) {
                 try {
+                    System.out.println("waiting...");
                     Thread.sleep(5);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
@@ -856,7 +857,7 @@ public class ClientTestMain {
             }
         }
         long stopCommits = System.nanoTime();
-
+        wait(10000);
         System.out.println("Time needed for commit -> " + (stopCommits-startCommits)/(Math.pow(10, 6)) + " [ms]");
     }
 
