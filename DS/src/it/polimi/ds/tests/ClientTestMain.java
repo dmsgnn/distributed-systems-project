@@ -12,10 +12,8 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.temporal.TemporalUnit;
 import java.util.*;
 
 public class ClientTestMain {
@@ -24,11 +22,8 @@ public class ClientTestMain {
     private static ArrayList<ServerThread> threads = new ArrayList<>();
 
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
-        //test5();
-        //isolationTest();
-        //sequentialityTest();
+        // do the desired test
         multiCommitStressTest(1000, 2, 2);
-        //multiClientStressTest();
     }
 
     /**
@@ -540,10 +535,6 @@ public class ClientTestMain {
             throw new RuntimeException(e);
         }
         System.out.println("Duration in milliseconds of a Transaction with "+ numberOperations + " operations (average of "+ (numberOfTry-1) + " tries) -> " + totalTime/(Math.pow(10, 6) * (numberOfTry-1)));
-
-        //shutdownServers();
-        //client.deleteConnections();
-
     }
 
 
@@ -790,7 +781,6 @@ public class ClientTestMain {
         System.out.println("Done " + numOps + " operations and " + numCommits + " commits in " + totalTime + " seconds.");
         System.out.println("Commit throughput: " + numCommits/totalTime + " commits per second." );
         System.out.println("Operations throughput: " + numOps/totalTime + " operations per second." );
-        //System.exit(0);
     }
 
     /**
@@ -880,14 +870,6 @@ public class ClientTestMain {
             }
         }
         return threads;
-    }
-
-    // does not work
-    private static void shutdownServers () throws IOException {
-        for(ServerThread st : threads){
-            st.close();
-        }
-        threads.clear();
     }
 
     private static void wait(int millis) {

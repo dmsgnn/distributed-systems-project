@@ -10,7 +10,6 @@ import java.util.Map;
 import static java.lang.System.out;
 
 public class Store implements Serializable {
-    // Map<Integer, Tuple> containing the data, the key is the key of the tuple for query speedup
     protected Map<Integer, Tuple> store;
 
     public Store() {
@@ -35,13 +34,58 @@ public class Store implements Serializable {
     }
 
     public String toString() {
-        String res = "Store status\n";
-        res+="Keys      Values\n";
+        int maxKeyLength = 3;
+        int maxValueLength = 5;
         for(Map.Entry<Integer, Tuple> entry : store.entrySet()){
-            int space = 10 - String.valueOf(entry.getKey()).length();
-            String s = String.format("%"+space+"s", "");
-            res+=entry.getKey() + s + entry.getValue().getValue() +"\n";
+            if(entry.getValue().getValue().length() > maxValueLength){
+                maxValueLength = entry.getValue().getValue().length();
+            }
+            String temp = String.valueOf(entry.getValue().getKey());
+            if(temp.length() > maxKeyLength){
+                maxKeyLength = temp.length();
+            }
         }
-        return res;
+        StringBuilder res = new StringBuilder("Store status\n");
+        res.append(separator(maxKeyLength, maxValueLength));
+        res.append("\n| KEY");
+        for(int i = 0; i<maxKeyLength-3; i++){
+            res.append(" ");
+        }
+        res.append("  | VALUE");
+
+        for(int i = 0; i<maxValueLength-5; i++){
+            res.append(" ");
+        }
+        res.append("  |\n");
+        res.append(separator(maxKeyLength, maxValueLength));
+        for(Map.Entry<Integer, Tuple> entry : store.entrySet()){
+            res.append("\n");
+            int space = maxKeyLength - String.valueOf(entry.getKey()).length();
+            StringBuilder s = new StringBuilder();
+            for(int i = 0; i<space; i++){
+                s.append(" ");
+            }
+            int space1 = maxValueLength - entry.getValue().getValue().length();
+            StringBuilder s1 = new StringBuilder();
+            for(int i = 0; i<space1; i++){
+                s1.append(" ");
+            }
+            res.append("| ").append(entry.getKey()).append(s).append("  | ").append(entry.getValue().getValue()).append(s1).append("  |\n");
+            res.append(separator(maxKeyLength, maxValueLength));
+        }
+        return res.toString();
+    }
+
+    public String separator(int kl, int vl){
+        StringBuilder res= new StringBuilder("+-");
+        for(int i = 0; i<kl; i++){
+            res.append("-");
+        }
+        res.append("--+-");
+        for(int i = 0; i<vl; i++){
+            res.append("-");
+        }
+        res.append("--+");
+        return res.toString();
     }
 }

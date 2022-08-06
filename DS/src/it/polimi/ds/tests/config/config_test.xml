@@ -1,38 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config>
     <params>
-        <R>3</R>
+        <R>2</R>
     </params>
     <peers>
         <peer>
             <id>0</id>
-            <host>192.168.178.32</host>
-            <port>5000</port>
+            <host>127.0.0.1</host>
+            <port>4000</port>
         </peer>
         <peer>
             <id>1</id>
-            <host>192.168.178.32</host>
-            <port>4100</port>
+            <host>127.0.0.1</host>
+            <port>4001</port>
         </peer>
         <peer>
             <id>2</id>
-            <host>192.168.178.32</host>
-            <port>4200</port>
-        </peer>
-        <peer>
-            <id>3</id>
-            <host>192.168.178.32</host>
-            <port>4300</port>
-        </peer>
-        <peer>
-            <id>4</id>
-            <host>192.168.178.32</host>
-            <port>4400</port>
-        </peer>
-        <peer>
-            <id>5</id>
-            <host>192.168.178.32</host>
-            <port>4500</port>
+            <host>127.0.0.1</host>
+            <port>4002</port>
         </peer>
     </peers>
 </config>

@@ -47,7 +47,6 @@ public class ServerSocketHandler extends SocketHandler {
                 shouldHaveTheKey.add(targetId);
             }
         }
-        System.out.println(shouldHaveTheKey);
         return shouldHaveTheKey;
     }
 
@@ -57,28 +56,20 @@ public class ServerSocketHandler extends SocketHandler {
      * @return true if between the receivers of the read message there is at least one server which could have the key, false otherwise
      */
     private boolean someoneShouldHaveTheKey(ArrayList<Integer> idList, int key) {
-        /*if(getPossibleKeyOwners(idList, key).size() == 0)
-            return false;
-        else
-            return true;
-         */
         return getPossibleKeyOwners(idList, key).size() != 0;
     }
 
     @Override
     public void run() {
-    // TODO: using strings for errors is not good, it would be better doing an error enumeration
         try {
             while(true) {
                 Message message = (Message) in.readObject();
-                //System.out.println(socket.getInetAddress().toString() + ":" + socket.getPort());
                 simulateNetworkDelay(server.getTestSpecs(), message.getClass());
                 server.addToLog(Timestamp.from(Instant.now()), new LogMessage(message, false));
                 if (message instanceof ReadMessage) {
                     this.doRead((ReadMessage) message);
                 }
                 else if (message instanceof WriteMessage) {
-                    System.out.println("[" + server.getSocketId(this) + "] W " + ((WriteMessage) message).getTuple());
                     this.privateWorkspace.put(((WriteMessage) message).getTuple());
                 }
                 else if (message instanceof HandshakeMessage) {
@@ -141,9 +132,7 @@ public class ServerSocketHandler extends SocketHandler {
     public void doRead(ReadMessage message) {
         int key = (message).getKey();
         Tuple res;
-        ///////////////////////////////
         // Retrieve the tuple
-        ///////////////////////////////
         // if the key is in the private workspace
         if(privateWorkspace.contains(key) && privateWorkspace.getTuple(key).getValue() != null){
             res = new Tuple(key, privateWorkspace.getTuple(key).getValue());
@@ -166,17 +155,15 @@ public class ServerSocketHandler extends SocketHandler {
                 // the check is performed while sending the reply
                 res = new Tuple(key, null);
             }
-            ///////////////////////////////
             // Send the reply
-            ///////////////////////////////
             if (someoneShouldHaveTheKey(message.getIDs(), key)) { // in this case forwarding is not required
-                System.out.println("[info] Someone should have the key...");
+                //System.out.println("[info] Someone should have the key...");
                 // if I am the biggest one of servers which could have the key between the receivers I manage the request
                 if (server.getPeerData().getId() == Collections.max(getPossibleKeyOwners((message).getIDs(), key))) {
-                    System.out.println("[info] I should have the key " + key + " and I should reply.");
+                    //System.out.println("[info] I should have the key " + key + " and I should reply.");
                     // the key exists and reply is sent
                     if (res.getValue() != null) {
-                        System.out.println("[info] I have the tuple with key " + key + "!");
+                        System.out.println("Tuple with key " + key + " is present");
                         //send(new ReplyMessage("[" + this.socket.getInetAddress().getHostAddress() + "] " + res.getValue()));
                         send(new ReplyMessage(res));
                     }
@@ -188,7 +175,7 @@ public class ServerSocketHandler extends SocketHandler {
                 }
                 // I am not the biggest one: do nothing
                 else {
-                    PrintHelper.printError("[" + this.socket.getInetAddress().getHostAddress() + "] It is not my job to manage the read message with key " + key + "!");
+                    //PrintHelper.printError("[" + this.socket.getInetAddress().getHostAddress() + "] It is not my job to manage the read message with key " + key + "!");
                 }
             }
             // Forwarding!
@@ -198,16 +185,14 @@ public class ServerSocketHandler extends SocketHandler {
                     server.forwardRead(new ForwardedMessage(message, this.creationTime));
                 }
             }
-            ///////////////////////////////
             // Store the tuple
-            ///////////////////////////////
             res.setValue(null); // all the Tuples stored in the workspace caused by reads are stored in the private workspace with null values
             privateWorkspace.put(res);
         }
     }
 
     public void handleForwardedMessage(ForwardedMessage message) {
-        System.out.println("Handling a forwarded read!");
+        //System.out.println("Handling a forwarded read!");
         Message innerMessage = message.getMessage();
         Message reply;
         if (innerMessage instanceof ReadMessage) { // If the inner message is a read request I have to retrieve the tuple from storage
@@ -216,7 +201,7 @@ public class ServerSocketHandler extends SocketHandler {
                 reply = new ForwardedMessage(new ReplyMessage(new Tuple(key, server.getValue(key))), message.getSourceSocketId());
             }
             else {
-                System.out.println("[i] Tuple not found (key: " + key + ")");
+                System.out.println("Tuple with key " + key + "not found");
                 reply = new ForwardedMessage(new ErrorMessage(ErrorCode.INVALID_KEY, key), message.getSourceSocketId());
             }
             send(reply);
@@ -257,7 +242,7 @@ public class ServerSocketHandler extends SocketHandler {
                         boolean cond2 = !d.isFromClient() && server.getSocketId(this) != -1; // the rules specify a delay from server and my connection is to a server
                         if (cond0 || cond1 || cond2) {
                             try {
-                                System.out.println("################# SERVER s" + server.getPeerData().getId() + " sleeping for " + d.getDelayMillis() + "ms! " + cond0 + " - " + cond1 + " - " + cond2 + " Source = " + server.getSocketId(this));
+                                //System.out.println("################# SERVER s" + server.getPeerData().getId() + " sleeping for " + d.getDelayMillis() + "ms! " + cond0 + " - " + cond1 + " - " + cond2 + " Source = " + server.getSocketId(this));
                                 Thread.sleep(d.getDelayMillis());
                             } catch (InterruptedException e) {
                                 throw new RuntimeException(e);
