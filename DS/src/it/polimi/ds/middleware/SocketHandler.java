@@ -79,31 +79,4 @@ public abstract class SocketHandler implements Runnable {
 
     @Override
     abstract public void run();
-    /*
-    /**
-     * Thread to remain open to accept server replies
-
-    @Override
-    public void run() {
-        try {
-            while (true) {
-                Message message = (Message) in.readObject();
-                // print to test the received value
-                if(message instanceof ServerReply) {
-                    System.out.println(((ServerReply) message).getValue());
-                }
-                else if (message instanceof WriteMessage) {
-                    serverMain.setValue(((WriteMessage) message).getTuple().getKey(), ((WriteMessage) message).getTuple().getValue());
-                    serverMain.showStore();
-                    serverMain.forward(message);
-                }
-            }
-        } catch(IOException | ClassNotFoundException e) {
-            //e.printStackTrace();
-            e.getMessage();
-            PrintHelper.printError("\nServer shut down \n ");
-            exit(0);
-        }
-    }
-    */
 }

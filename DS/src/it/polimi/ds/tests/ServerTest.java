@@ -3,15 +3,12 @@ package it.polimi.ds.tests;
 import it.polimi.ds.helpers.ConfigHelper;
 import it.polimi.ds.messages.CommitMessage;
 import it.polimi.ds.middleware.ServerSocketHandler;
-import it.polimi.ds.middleware.SocketHandler;
 import it.polimi.ds.model.CommitInfo;
 import it.polimi.ds.model.Peer;
 import it.polimi.ds.model.Tuple;
 import it.polimi.ds.model.Workspace;
 import it.polimi.ds.server.Server;
 import it.polimi.ds.tests.helpers.ServerThread;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.xml.sax.SAXException;
 
@@ -20,7 +17,6 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;

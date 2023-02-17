@@ -12,13 +12,7 @@ public class ClientMain {
     private static final String FILENAME = "DS/src/config.xml";
 
     public static void main(String[] args) {
-        System.out.println("  ____  ____                        _           _   \n" +
-                " |  _ \\/ ___|       _ __  _ __ ___ (_) ___  ___| |_ \n" +
-                " | | | \\___ \\ _____| '_ \\| '__/ _ \\| |/ _ \\/ __| __|\n" +
-                " | |_| |___) |_____| |_) | | | (_) | |  __/ (__| |_ \n" +
-                " |____/|____/      | .__/|_|  \\___/, |\\___|\\___|\\__|\n" +
-                "                   |_|           |__/               ");
-        System.out.println("Welcome to the most efficient distributed key storage, please connect to one of the peers below: ");
+        System.out.println("Welcome to the distributed key-value storage, please select one of the servers below: ");
         Client client = new Client(FILENAME);
 
         do {
@@ -47,14 +41,14 @@ public class ClientMain {
             return choice;
         }
         else {
-            PrintHelper.printError("No peer available :(");
+            PrintHelper.printError("No peer available.");
             return -1;
         }
     }
 
     private static void printPeers(List<Peer> peers) {
         for (Peer s: peers) {
-            System.out.println(s.getId() + ") " + s.getHost() + ":" + s.getPort());
+            System.out.println(s.getId() + ". " + " " +  s.getHost() + " : " + s.getPort());
         }
     }
 
@@ -62,13 +56,13 @@ public class ClientMain {
         System.out.println("Select one of the following operations:");
         String[] options = {
                 "Add connection",       //1
-                "Detach connection",    //2
+                "Delete connection",    //2
                 "Begin transaction",    //3
-                "Exit",                 //4
+                "Quit",                 //4
         };
         int i = 1;
         for (String s : options) {
-            System.out.println(i+") " + s);
+            System.out.println(i+". " + s);
             i++;
         }
 
@@ -97,7 +91,7 @@ public class ClientMain {
                 } while (!isTerminated);
             }
             case 4 -> { // exit
-                System.out.println("Cya!");
+                System.out.println("Bye!");
                 System.exit(0);
             }
             default -> System.out.println("Invalid selection");
@@ -119,7 +113,7 @@ public class ClientMain {
         };
         int i = 1;
         for (String s : options) {
-            System.out.println(i+") " + s);
+            System.out.println(i+". " + s);
             i++;
         }
 
